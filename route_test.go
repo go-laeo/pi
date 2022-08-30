@@ -7,7 +7,6 @@ import (
 func Test_node_Insert(t *testing.T) {
 	type fields struct {
 		lit string
-		h   any
 		sub map[string]*Route
 	}
 	type args struct {
@@ -35,9 +34,6 @@ func Test_node_Insert(t *testing.T) {
 			},
 			want: &Route{
 				lit: "users",
-				h: func(ctx Context, p *any) error {
-					return nil
-				},
 				sub: make(map[string]*Route),
 			},
 		},
@@ -55,9 +51,6 @@ func Test_node_Insert(t *testing.T) {
 			},
 			want: &Route{
 				lit: "users",
-				h: func(ctx Context, p *any) error {
-					return nil
-				},
 				sub: make(map[string]*Route),
 			},
 		},
@@ -75,9 +68,6 @@ func Test_node_Insert(t *testing.T) {
 			},
 			want: &Route{
 				lit: "api",
-				h: func(ctx Context, p *any) error {
-					return nil
-				},
 				sub: make(map[string]*Route),
 			},
 		},
@@ -99,7 +89,6 @@ func Test_node_Insert(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			p := &Route{
 				lit: tt.fields.lit,
-				h:   tt.fields.h,
 				sub: tt.fields.sub,
 			}
 			if got := p.Insert(tt.args.route, tt.args.method, tt.args.h); got.lit != tt.want.lit || len(got.sub) > 0 {
@@ -114,9 +103,7 @@ func BenchmarkNodeInsert(b *testing.B) {
 		sub: make(map[string]*Route),
 	}
 	for i := 0; i < b.N; i++ {
-		root.Insert("/api/v1/users", "GET", func(ctx Context, p *any) error {
-			return nil
-		})
+		root.Insert("/api/v1/users", "GET", nil)
 	}
 }
 

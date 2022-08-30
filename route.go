@@ -1,14 +1,16 @@
 package ezy
 
 import (
+	"net/http"
 	"path"
 	"strings"
 )
 
 type Route struct {
-	lit string
-	h   any
-	sub map[string]*Route
+	lit  string
+	name string
+	sub  map[string]*Route
+	hmap map[string]http.Handler
 }
 
 func (p *Route) Search(route string) *Route {
@@ -27,7 +29,7 @@ func (p *Route) Search(route string) *Route {
 	return root
 }
 
-func (p *Route) Insert(route string, method string, h HandlerFunc[any]) *Route {
+func (p *Route) Insert(route string, method string, h http.Handler) *Route {
 	route = path.Clean(route)
 	root := p
 	for _, seg := range strings.Split(route, "/") {
@@ -46,7 +48,11 @@ func (p *Route) Insert(route string, method string, h HandlerFunc[any]) *Route {
 		root = n
 	}
 
-	root.h = h
+	if root.hmap == nil {
+		root.hmap = make(map[string]http.Handler)
+	}
+
+	root.hmap[strings.ToUpper(method)] = h
 
 	return root
 }
