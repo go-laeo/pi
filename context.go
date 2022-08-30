@@ -13,6 +13,8 @@ type Context interface {
 	context.Context
 	http.ResponseWriter
 
+	WithContext(ctx context.Context) Context
+
 	Raw() (w http.ResponseWriter, r *http.Request)
 	Query(field string, defaults ...string) string
 	Form(field string, defaults ...string) string
@@ -205,6 +207,11 @@ func (c *ctx) Write(b []byte) (int, error) {
 // an "Expect: 100-continue" header.
 func (c *ctx) WriteHeader(statusCode int) {
 	c.c = statusCode
+}
+
+func (c *ctx) WithContext(ctx context.Context) Context {
+	c.r = c.r.WithContext(ctx)
+	return c
 }
 
 func (c *ctx) Raw() (w http.ResponseWriter, r *http.Request) {
