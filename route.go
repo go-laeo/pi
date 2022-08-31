@@ -56,3 +56,8 @@ func (p *Route) Insert(route string, method string, h http.Handler) *Route {
 
 	return root
 }
+
+func (p *Route) Alias(name string) *Route {
+	p.name = name
+	return p
+}

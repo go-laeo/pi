@@ -150,3 +150,10 @@ func Benchmark_node_Search(b *testing.B) {
 		root.Search("/api/v1/users")
 	}
 }
+
+func BenchmarkRouteAlias(b *testing.B) {
+	ro := &Route{}
+	for i := 0; i < b.N; i++ {
+		ro = ro.Alias("test")
+	}
+}
