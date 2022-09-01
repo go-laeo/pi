@@ -36,21 +36,18 @@ func (sm *ServerMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	r = r.WithContext(sm.ctx)
 
 	n := sm.root.Search(r.URL.Path)
-	if n == nil {
-		sm.notfound.ServeHTTP(w, r)
-		return
-	}
+	if n != nil {
+		fn, ok := n.hmap[r.Method]
+		if ok {
+			fn.ServeHTTP(w, r)
+			return
+		}
 
-	fn, ok := n.hmap[r.Method]
-	if ok {
-		fn.ServeHTTP(w, r)
-		return
-	}
-
-	fn, ok = n.hmap[customANY]
-	if ok {
-		fn.ServeHTTP(w, r)
-		return
+		fn, ok = n.hmap[customANY]
+		if ok {
+			fn.ServeHTTP(w, r)
+			return
+		}
 	}
 
 	sm.notfound.ServeHTTP(w, r)

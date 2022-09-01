@@ -6,58 +6,102 @@ import (
 	"strings"
 )
 
+const (
+	dynamic  = ':'
+	wildcard = '*'
+)
+
 type Route struct {
-	lit  string
-	name string
-	sub  map[string]*Route
+	parent *Route
+
+	pattern     string
+	placeholder string // pattern without param or wildcard identifier
+
+	hasDynamicChild  bool
+	hasWildcardChild bool
+	sub              map[string]*Route
+
 	hmap map[string]http.Handler
 }
 
 func (p *Route) Search(route string) *Route {
 	route = path.Clean(route)
-	root := p
-	for _, seg := range strings.Split(route, "/") {
-		n, ok := root.sub[seg]
+	chunks := strings.Split(route, "/")
+
+	current := p
+	for i := 0; i < len(chunks); i++ {
+		seg := chunks[i]
+
+		next, ok := current.sub[seg]
 		if ok {
-			root = n
+			current = next
 			continue
+		}
+
+		if current.hasDynamicChild {
+			next, ok = current.sub[string(dynamic)]
+			if ok {
+				current = next // continues on dynamic route.
+				continue
+			}
+		}
+
+		if current.hasWildcardChild {
+			next, ok = current.sub[string(wildcard)]
+			if ok {
+				// wildcard route should returns immediately.
+				return next
+			}
 		}
 
 		return nil
 	}
 
-	return root
+	return current
 }
 
 func (p *Route) Insert(route string, method string, h http.Handler) *Route {
 	route = path.Clean(route)
-	root := p
+	current := p
 	for _, seg := range strings.Split(route, "/") {
-		if root.sub == nil {
-			root.sub = make(map[string]*Route)
+		if current.sub == nil {
+			current.sub = make(map[string]*Route)
 		}
 
-		n, ok := root.sub[seg]
+		next, ok := current.sub[seg]
 		if ok {
-			root = n
+			current = next
 			continue
 		}
 
-		n = &Route{lit: seg}
-		root.sub[seg] = n
-		root = n
+		next = &Route{
+			parent:      current,
+			pattern:     seg,
+			placeholder: seg,
+		}
+
+		if len(seg) > 0 {
+			switch next.pattern[0] {
+			case dynamic:
+				current.hasDynamicChild = true
+				next.placeholder = next.placeholder[1:]
+				current.sub[string(dynamic)] = next
+			case wildcard:
+				current.hasWildcardChild = true
+				next.placeholder = next.placeholder[1:]
+				current.sub[string(wildcard)] = next
+			}
+		}
+
+		current.sub[seg] = next
+		current = next
 	}
 
-	if root.hmap == nil {
-		root.hmap = make(map[string]http.Handler)
+	if current.hmap == nil {
+		current.hmap = make(map[string]http.Handler)
 	}
 
-	root.hmap[strings.ToUpper(method)] = h
+	current.hmap[strings.ToUpper(method)] = h
 
-	return root
-}
-
-func (p *Route) Alias(name string) *Route {
-	p.name = name
-	return p
+	return current
 }
