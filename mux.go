@@ -9,11 +9,11 @@ const (
 	customANY = "ANY"
 )
 
-var defaultNotFoundHandler = Compose(func(ctx Context, p *any) error {
+var defaultNotFoundHandler HandlerFunc[Void] = func(ctx Context, p *Void) error {
 	ctx.WriteHeader(404)
 	ctx.Write([]byte("not found"))
 	return nil
-})
+}
 
 type ServerMux struct {
 	ctx      context.Context

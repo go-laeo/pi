@@ -3,7 +3,6 @@ package ezy
 import (
 	"bytes"
 	"context"
-	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -11,16 +10,14 @@ import (
 
 func TestRouter_ServeHTTP(t *testing.T) {
 	ro := NewServerMux(context.Background())
-	ro.Get("/api/v1/users", Compose(func(ctx Context, p *any) error {
-		ctx.Write([]byte("OK"))
-		return nil
+	ro.Get("/api/v1/users", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("OK"))
 	}))
-	ro.Any("/api/v1/system/status", Compose(func(ctx Context, p *Void) error {
-		ctx.Write([]byte("OK"))
-		return nil
+	ro.Any("/api/v1/system/status", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("OK"))
 	}))
-	ro.Options("/preflight", Compose(func(ctx Context, p *Void) error {
-		return errors.New("failed")
+	ro.Options("/preflight", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("OK"))
 	}))
 
 	type args struct {
