@@ -49,6 +49,9 @@ type Context interface {
 	IP() string
 	IPSet() []string
 
+	Method() string
+	Is(method string) bool
+
 	Respond(v any) error
 	Json(v any) error
 	Text(v string) error
@@ -208,6 +211,14 @@ func (c *_ctx) IPSet() []string {
 		return nil
 	}
 	return []string{host}
+}
+
+func (c *_ctx) Method() string {
+	return c.r.Method
+}
+
+func (c *_ctx) Is(method string) bool {
+	return c.Method() == method
 }
 
 func (c *_ctx) Respond(v any) (err error) {
