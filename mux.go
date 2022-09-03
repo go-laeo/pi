@@ -12,30 +12,49 @@ const (
 
 type routePathParam struct{}
 
-var defaultNotFoundHandler HandlerFunc[Void] = func(ctx Context, _ *Void) error {
-	ctx.WriteHeader(404)
-	ctx.Write([]byte("not found"))
-	return nil
+var defaultOnNotFound http.Handler = http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+	w.WriteHeader(404)
+})
+
+type ServerMux interface {
+	http.Handler
+
+	Get(path string, h http.Handler)
+	Post(path string, h http.Handler)
+	Put(path string, h http.Handler)
+	Delete(path string, h http.Handler)
+	Patch(path string, h http.Handler)
+	Options(path string, h http.Handler)
+	Head(path string, h http.Handler)
+
+	// Any insert a handler for path without check http method.
+	Any(path string, h http.Handler)
+
+	// Group insert routes with same prefix.
+	Group(prefix string, fn func(sm ServerMux))
+
+	// OnNotFound sets a handler for undefined routes.
+	OnNotFound(h http.Handler)
 }
 
-type ServerMux struct {
-	ctx      context.Context
-	notfound http.Handler
-	root     *Route
-	prefix   string
+type servermux struct {
+	ctx        context.Context
+	onnotfound http.Handler
+	root       *Route
+	prefix     string
 }
 
-func NewServerMux(ctx context.Context) *ServerMux {
-	return &ServerMux{
-		ctx:      ctx,
-		root:     &Route{},
-		notfound: defaultNotFoundHandler,
+func NewServerMux(ctx context.Context) ServerMux {
+	return &servermux{
+		ctx:        ctx,
+		root:       &Route{},
+		onnotfound: defaultOnNotFound,
 	}
 }
 
-var _ http.Handler = (*ServerMux)(nil)
+var _ ServerMux = (*servermux)(nil)
 
-func (sm *ServerMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (sm *servermux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	cap := make(url.Values)
 	r = r.WithContext(context.WithValue(sm.ctx, &routePathParam{}, cap))
 	n := sm.root.Search(r.URL.Path, cap)
@@ -53,44 +72,48 @@ func (sm *ServerMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	sm.notfound.ServeHTTP(w, r)
+	sm.onnotfound.ServeHTTP(w, r)
 }
 
-func (sm *ServerMux) Get(path string, h http.Handler) {
+func (sm *servermux) Get(path string, h http.Handler) {
 	sm.root.Insert(sm.prefix+path, http.MethodGet, h)
 }
 
-func (sm *ServerMux) Post(path string, h http.Handler) {
+func (sm *servermux) Post(path string, h http.Handler) {
 	sm.root.Insert(sm.prefix+path, http.MethodPost, h)
 }
 
-func (sm *ServerMux) Put(path string, h http.Handler) {
+func (sm *servermux) Put(path string, h http.Handler) {
 	sm.root.Insert(sm.prefix+path, http.MethodPut, h)
 }
 
-func (sm *ServerMux) Delete(path string, h http.Handler) {
+func (sm *servermux) Delete(path string, h http.Handler) {
 	sm.root.Insert(sm.prefix+path, http.MethodDelete, h)
 }
 
-func (sm *ServerMux) Patch(path string, h http.Handler) {
+func (sm *servermux) Patch(path string, h http.Handler) {
 	sm.root.Insert(sm.prefix+path, http.MethodPatch, h)
 }
 
-func (sm *ServerMux) Options(path string, h http.Handler) {
+func (sm *servermux) Options(path string, h http.Handler) {
 	sm.root.Insert(sm.prefix+path, http.MethodOptions, h)
 }
 
-func (sm *ServerMux) Head(path string, h http.Handler) {
+func (sm *servermux) Head(path string, h http.Handler) {
 	sm.root.Insert(sm.prefix+path, http.MethodHead, h)
 }
 
-func (sm *ServerMux) Any(path string, h http.Handler) {
+func (sm *servermux) Any(path string, h http.Handler) {
 	sm.root.Insert(sm.prefix+path, customANY, h)
 }
 
-func (sm *ServerMux) Group(prefix string, fn func(sm *ServerMux)) {
+func (sm *servermux) Group(prefix string, fn func(sm ServerMux)) {
 	prev := sm.prefix
 	sm.prefix = sm.prefix + prefix
 	fn(sm)
 	sm.prefix = prev
+}
+
+func (sm *servermux) OnNotFound(h http.Handler) {
+	sm.onnotfound = h
 }

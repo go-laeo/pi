@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-func TestRouter_ServeHTTP(t *testing.T) {
+func TestServerMux_ServeHTTP(t *testing.T) {
 	gen := func(b string) http.HandlerFunc {
 		return func(w http.ResponseWriter, _ *http.Request) {
 			w.Write([]byte(b))
@@ -45,7 +45,7 @@ func TestRouter_ServeHTTP(t *testing.T) {
 				w: httptest.NewRecorder(),
 				r: httptest.NewRequest("GET", "/api", nil),
 			},
-			want:       []byte("not found"),
+			want:       nil,
 			wantStatus: 404,
 		},
 		{
@@ -70,7 +70,7 @@ func TestRouter_ServeHTTP(t *testing.T) {
 
 func TestServerMux_Group(t *testing.T) {
 	sm := NewServerMux(context.Background())
-	sm.Group("/api/v1", func(sm *ServerMux) {
+	sm.Group("/api/v1", func(sm ServerMux) {
 		sm.Get("/users", http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			w.Write([]byte("API"))
 		}))
