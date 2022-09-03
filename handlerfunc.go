@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"net/url"
 )
 
 type Void struct{}
@@ -34,7 +35,12 @@ func (h HandlerFunc[T]) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	c := &_ctx{w: w, r: r, b: &bytes.Buffer{}, c: 200}
+	var p url.Values
+	if v := r.Context().Value(&routePathParam{}); v != nil {
+		p = v.(url.Values)
+	}
+
+	c := &_ctx{w: w, r: r, b: &bytes.Buffer{}, c: 200, p: p}
 	if err = h(c, input); err != nil {
 		switch v := err.(type) {
 		case *Error:

@@ -2,6 +2,7 @@ package ezy
 
 import (
 	"net/http"
+	"net/url"
 	"path"
 	"strings"
 )
@@ -21,7 +22,7 @@ type Route struct {
 	hasWildcardChild bool
 }
 
-func (p *Route) Search(route string) *Route {
+func (p *Route) Search(route string, captured url.Values) *Route {
 	route = path.Clean(route)
 	chunks := strings.Split(route, "/")
 
@@ -38,6 +39,7 @@ func (p *Route) Search(route string) *Route {
 		if current.hasDynamicChild {
 			next, ok = current.sub[string(dynamic)]
 			if ok {
+				captured.Set(next.placeholder, seg)
 				current = next // continues on dynamic route.
 				continue
 			}
@@ -46,6 +48,7 @@ func (p *Route) Search(route string) *Route {
 		if current.hasWildcardChild {
 			next, ok = current.sub[string(wildcard)]
 			if ok {
+				captured.Set(next.placeholder, strings.Join(chunks[i:], "/"))
 				// wildcard route should returns immediately.
 				return next
 			}

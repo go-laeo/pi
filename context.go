@@ -46,6 +46,9 @@ type Context interface {
 
 	URL() *url.URL
 
+	// Param gets named route param by name, returns empty string if it does not exists.
+	Param(name string) string
+
 	IP() string
 	IPSet() []string
 
@@ -63,6 +66,7 @@ type _ctx struct {
 	w http.ResponseWriter
 	r *http.Request
 	b *bytes.Buffer
+	p url.Values
 	c int
 }
 
@@ -195,6 +199,10 @@ func (c *_ctx) Domain() string {
 
 func (c *_ctx) URL() *url.URL {
 	return c.r.URL
+}
+
+func (c *_ctx) Param(name string) string {
+	return c.p.Get(name)
 }
 
 func (c *_ctx) IP() string {

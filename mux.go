@@ -3,11 +3,14 @@ package ezy
 import (
 	"context"
 	"net/http"
+	"net/url"
 )
 
 const (
 	customANY = "ANY"
 )
+
+type routePathParam struct{}
 
 var defaultNotFoundHandler HandlerFunc[Void] = func(ctx Context, _ *Void) error {
 	ctx.WriteHeader(404)
@@ -33,9 +36,9 @@ func NewServerMux(ctx context.Context) *ServerMux {
 var _ http.Handler = (*ServerMux)(nil)
 
 func (sm *ServerMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	r = r.WithContext(sm.ctx)
-
-	n := sm.root.Search(r.URL.Path)
+	cap := make(url.Values)
+	r = r.WithContext(context.WithValue(sm.ctx, &routePathParam{}, cap))
+	n := sm.root.Search(r.URL.Path, cap)
 	if n != nil {
 		fn, ok := n.hmap[r.Method]
 		if ok {

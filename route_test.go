@@ -3,6 +3,7 @@ package ezy
 import (
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"testing"
 )
 
@@ -189,9 +190,10 @@ func TestRouteSearch(t *testing.T) {
 		route string
 	}
 	tests := []struct {
-		name string
-		args args
-		want string
+		captured map[string]string
+		name     string
+		args     args
+		want     string
 	}{
 		{
 			name: "search static route should succeed",
@@ -199,34 +201,40 @@ func TestRouteSearch(t *testing.T) {
 			want: "/api/v1/users",
 		},
 		{
-			name: "search dynamic route should succeed",
-			args: args{route: "/api/v1/users/102"},
-			want: "/api/v1/users/:id",
+			name:     "search dynamic route should succeed",
+			args:     args{route: "/api/v1/users/102"},
+			want:     "/api/v1/users/:id",
+			captured: map[string]string{"id": "102"},
 		},
 		{
-			name: "search static route next to dynamic one should succeed",
-			args: args{route: "/api/v1/users/101/posts"},
-			want: "/api/v1/users/:id/posts",
+			name:     "search static route next to dynamic one should succeed",
+			args:     args{route: "/api/v1/users/101/posts"},
+			want:     "/api/v1/users/:id/posts",
+			captured: map[string]string{"id": "101"},
 		},
 		{
-			name: "search dynamic route nested in another one should succeed",
-			args: args{route: "/api/v1/users/101/posts/120"},
-			want: "/api/v1/users/:id/posts/:po",
+			name:     "search dynamic route nested in another one should succeed",
+			args:     args{route: "/api/v1/users/101/posts/120"},
+			want:     "/api/v1/users/:id/posts/:po",
+			captured: map[string]string{"id": "101", "po": "120"},
 		},
 		{
-			name: "search wildcard route should succeed",
-			args: args{route: "/pathtowildcard"},
-			want: "/*path",
+			name:     "search wildcard route should succeed",
+			args:     args{route: "/pathtowildcard"},
+			want:     "/*path",
+			captured: map[string]string{"path": "pathtowildcard"},
 		},
 		{
-			name: "search wildcard route nested in static one should succeed",
-			args: args{route: "/uploads/users/1.avatar.png"},
-			want: "/uploads/*path",
+			name:     "search wildcard route nested in static one should succeed",
+			args:     args{route: "/uploads/users/1.avatar.png"},
+			want:     "/uploads/*path",
+			captured: map[string]string{"path": "users/1.avatar.png"},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := root.Search(tt.args.route)
+			captured := make(url.Values)
+			got := root.Search(tt.args.route, captured)
 			if got == nil {
 				t.Fatalf("%s does not find corresponding route", tt.name)
 			}
@@ -240,6 +248,13 @@ func TestRouteSearch(t *testing.T) {
 			h.ServeHTTP(w, r)
 			if tt.want != w.Body.String() {
 				t.Fatalf("[%s] want = %s, got = %s", tt.name, tt.want, w.Body.String())
+			}
+			if tt.captured != nil {
+				for k, v := range tt.captured {
+					if captured.Get(k) != v {
+						t.Fatalf("[%s] want captured %s = %s, got %s", tt.name, k, v, captured.Get(k))
+					}
+				}
 			}
 		})
 	}
@@ -266,6 +281,6 @@ func BenchmarkRouteSearch(b *testing.B) {
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		root.Search("/api/v1/users/:id/posts/:po")
+		root.Search("/api/v1/users/:id/posts/:po", make(url.Values))
 	}
 }
