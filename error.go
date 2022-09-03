@@ -1,8 +1,8 @@
 package ezy
 
 type Error struct {
-	Code    int    `json:"code"`
 	Message string `json:"message,omitempty"`
+	Code    int    `json:"code"`
 }
 
 func NewError(code int, message string) *Error {

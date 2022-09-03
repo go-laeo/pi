@@ -9,7 +9,7 @@ const (
 	customANY = "ANY"
 )
 
-var defaultNotFoundHandler HandlerFunc[Void] = func(ctx Context, p *Void) error {
+var defaultNotFoundHandler HandlerFunc[Void] = func(ctx Context, _ *Void) error {
 	ctx.WriteHeader(404)
 	ctx.Write([]byte("not found"))
 	return nil
@@ -17,8 +17,8 @@ var defaultNotFoundHandler HandlerFunc[Void] = func(ctx Context, p *Void) error 
 
 type ServerMux struct {
 	ctx      context.Context
-	root     *Route
 	notfound http.Handler
+	root     *Route
 	prefix   string
 }
 

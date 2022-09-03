@@ -8,19 +8,19 @@ import (
 
 func TestRouteInsert(t *testing.T) {
 	type fields struct {
-		pattern string
 		sub     map[string]*Route
+		pattern string
 	}
 	type args struct {
+		h      HandlerFunc[any]
 		route  string
 		method string
-		h      HandlerFunc[any]
 	}
 	tests := []struct {
-		name   string
-		fields fields
-		args   args
 		want   *Route
+		args   args
+		fields fields
+		name   string
 	}{
 		{
 			name: "insert should succeed",
@@ -169,7 +169,7 @@ func BenchmarkNodeInsert(b *testing.B) {
 
 func TestRouteSearch(t *testing.T) {
 	gen := func(b string) http.HandlerFunc {
-		return func(w http.ResponseWriter, r *http.Request) {
+		return func(w http.ResponseWriter, _ *http.Request) {
 			w.Write([]byte(b))
 		}
 	}
@@ -237,7 +237,7 @@ func TestRouteSearch(t *testing.T) {
 
 func BenchmarkRouteSearch(b *testing.B) {
 	gen := func(b string) http.HandlerFunc {
-		return func(w http.ResponseWriter, r *http.Request) {
+		return func(w http.ResponseWriter, _ *http.Request) {
 			w.Write([]byte(b))
 		}
 	}

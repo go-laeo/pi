@@ -10,13 +10,13 @@ import (
 
 func TestRouter_ServeHTTP(t *testing.T) {
 	ro := NewServerMux(context.Background())
-	ro.Get("/api/v1/users", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	ro.Get("/api/v1/users", http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Write([]byte("OK"))
 	}))
-	ro.Any("/api/v1/system/status", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	ro.Any("/api/v1/system/status", http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Write([]byte("OK"))
 	}))
-	ro.Options("/preflight", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	ro.Options("/preflight", http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Write([]byte("OK"))
 	}))
 
@@ -71,11 +71,11 @@ func TestRouter_ServeHTTP(t *testing.T) {
 func TestServerMux_Group(t *testing.T) {
 	sm := NewServerMux(context.Background())
 	sm.Group("/api/v1", func(sm *ServerMux) {
-		sm.Get("/users", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		sm.Get("/users", http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			w.Write([]byte("API"))
 		}))
 	})
-	sm.Get("/users", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	sm.Get("/users", http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Write([]byte("OK"))
 	}))
 

@@ -12,16 +12,13 @@ const (
 )
 
 type Route struct {
-	parent *Route
-
-	pattern     string
-	placeholder string // pattern without param or wildcard identifier
-
+	parent           *Route
+	sub              map[string]*Route
+	hmap             map[string]http.Handler
+	pattern          string
+	placeholder      string
 	hasDynamicChild  bool
 	hasWildcardChild bool
-	sub              map[string]*Route
-
-	hmap map[string]http.Handler
 }
 
 func (p *Route) Search(route string) *Route {

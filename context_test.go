@@ -9,7 +9,7 @@ import (
 )
 
 func Test_ctx_WithContext(t *testing.T) {
-	t.Run("should not throw goroutine stack exceeds", func(t *testing.T) {
+	t.Run("should not throw goroutine stack exceeds", func(_ *testing.T) {
 		type a struct{}
 		var _a *a
 		type b struct{}
