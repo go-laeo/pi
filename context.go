@@ -33,9 +33,6 @@ type Context interface {
 	// be returned.
 	Cookie(name string) (*http.Cookie, error)
 
-	// HeaderMap returns http.Header value from underlying request.
-	HeaderMap() http.Header
-
 	// Get gets the first value associated with the given key from request header. If
 	// there are no values associated with the key, Get returns "".
 	// It is case insensitive; textproto.CanonicalMIMEHeaderKey is
@@ -186,10 +183,6 @@ func (c *_ctx) FileSet(field string) []*multipart.FileHeader {
 
 func (c *_ctx) Cookie(name string) (*http.Cookie, error) {
 	return c.r.Cookie(name)
-}
-
-func (c *_ctx) HeaderMap() http.Header {
-	return c.r.Header
 }
 
 func (c *_ctx) Get(name string) string {
