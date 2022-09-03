@@ -213,6 +213,16 @@ func TestRouteSearch(t *testing.T) {
 			args: args{route: "/api/v1/users/101/posts/120"},
 			want: "/api/v1/users/:id/posts/:po",
 		},
+		{
+			name: "search wildcard route should succeed",
+			args: args{route: "/pathtowildcard"},
+			want: "/*path",
+		},
+		{
+			name: "search wildcard route nested in static one should succeed",
+			args: args{route: "/uploads/users/1.avatar.png"},
+			want: "/uploads/*path",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
