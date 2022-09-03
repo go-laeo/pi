@@ -8,6 +8,7 @@ import (
 	"mime/multipart"
 	"net"
 	"net/http"
+	"net/url"
 )
 
 type Context interface {
@@ -45,6 +46,8 @@ type Context interface {
 
 	// Domain gets domain name of from request's Host field, eg. www.google.com.
 	Domain() string
+
+	URL() *url.URL
 
 	IP() string
 	IPSet() []string
@@ -195,6 +198,10 @@ func (c *_ctx) Get(name string) string {
 
 func (c *_ctx) Domain() string {
 	return c.r.Host
+}
+
+func (c *_ctx) URL() *url.URL {
+	return c.r.URL
 }
 
 func (c *_ctx) IP() string {
