@@ -1,3 +1,3 @@
-module github.com/go-laeo/ezy
+module github.com/go-laeo/pi
 
 go 1.18
