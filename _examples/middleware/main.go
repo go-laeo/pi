@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 
-	"github.com/go-laeo/ezy"
+	"github.com/go-laeo/pi"
 )
 
 func main() {
@@ -26,14 +26,14 @@ func main() {
 	println("test ok!")
 }
 
-func process() ezy.HandlerFunc[ezy.Void] {
-	return func(ctx ezy.Context, p *ezy.Void) error {
+func process() pi.HandlerFunc[pi.Void] {
+	return func(ctx pi.Context, p *pi.Void) error {
 		return ctx.Text("hello, world!")
 	}
 }
 
-func logging(next ezy.HandlerFunc[ezy.Void]) ezy.HandlerFunc[ezy.Void] {
-	return func(ctx ezy.Context, p *ezy.Void) error {
+func logging(next pi.HandlerFunc[pi.Void]) pi.HandlerFunc[pi.Void] {
+	return func(ctx pi.Context, p *pi.Void) error {
 		log.SetPrefix(fmt.Sprintf("[%s] ", ctx.IP()))
 		log.Println(ctx.Method(), ctx.URL().Path)
 
@@ -41,8 +41,8 @@ func logging(next ezy.HandlerFunc[ezy.Void]) ezy.HandlerFunc[ezy.Void] {
 	}
 }
 
-func cors(next ezy.HandlerFunc[ezy.Void]) ezy.HandlerFunc[ezy.Void] {
-	return func(ctx ezy.Context, p *ezy.Void) error {
+func cors(next pi.HandlerFunc[pi.Void]) pi.HandlerFunc[pi.Void] {
+	return func(ctx pi.Context, p *pi.Void) error {
 		ctx.Header().Set("Access-Control-Allow-Origin", "*")
 		ctx.Header().Set("Access-Control-Allow-Credentials", "true")
 

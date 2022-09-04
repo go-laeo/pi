@@ -1,4 +1,4 @@
-package ezy
+package pi
 
 type Connector[T any] func(next HandlerFunc[T]) HandlerFunc[T]
 
