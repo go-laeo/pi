@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"io"
 	"mime/multipart"
 	"net"
 	"net/http"
@@ -49,14 +48,22 @@ type Context interface {
 	// Param gets named route param by name, returns empty string if it does not exists.
 	Param(name string) string
 
+	// IP gets first client IP.
 	IP() string
+
+	// IPSet gets all client IPs if available.
 	IPSet() []string
 
 	Method() string
 	Is(method string) bool
 
-	Respond(v any) error
+	// Code only responds to client with HTTP status code.
+	Code(code int) error
+
+	// Json encode v into JSON string then writes to client.
 	Json(v any) error
+
+	// Text writes v to client as plain text.
 	Text(v string) error
 	Redirect(to string, code ...int) error
 	SetCookie(c *http.Cookie)
@@ -229,17 +236,8 @@ func (c *_ctx) Is(method string) bool {
 	return c.Method() == method
 }
 
-func (c *_ctx) Respond(v any) (err error) {
-	switch v := v.(type) {
-	case string:
-		err = c.Text(v)
-	case []byte:
-		_, err = c.Write(v)
-	case io.Reader:
-		_, err = io.Copy(c, v)
-	default:
-		err = c.Json(v)
-	}
+func (c *_ctx) Code(code int) (err error) {
+	c.WriteHeader(code)
 	return
 }
 
