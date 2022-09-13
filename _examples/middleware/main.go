@@ -26,23 +26,23 @@ func main() {
 	println("test ok!")
 }
 
-func process() pi.HandlerFunc[pi.Void] {
-	return func(ctx pi.Context, p *pi.Void) error {
+func process() pi.HandlerFunc {
+	return func(ctx pi.Context) error {
 		return ctx.Text("hello, world!")
 	}
 }
 
-func logging(next pi.HandlerFunc[pi.Void]) pi.HandlerFunc[pi.Void] {
-	return func(ctx pi.Context, p *pi.Void) error {
+func logging(next pi.HandlerFunc) pi.HandlerFunc {
+	return func(ctx pi.Context) error {
 		log.SetPrefix(fmt.Sprintf("[%s] ", ctx.IP()))
 		log.Println(ctx.Method(), ctx.URL().Path)
 
-		return next(ctx, p)
+		return next(ctx)
 	}
 }
 
-func cors(next pi.HandlerFunc[pi.Void]) pi.HandlerFunc[pi.Void] {
-	return func(ctx pi.Context, p *pi.Void) error {
+func cors(next pi.HandlerFunc) pi.HandlerFunc {
+	return func(ctx pi.Context) error {
 		ctx.Header().Set("Access-Control-Allow-Origin", "*")
 		ctx.Header().Set("Access-Control-Allow-Credentials", "true")
 
@@ -54,6 +54,6 @@ func cors(next pi.HandlerFunc[pi.Void]) pi.HandlerFunc[pi.Void] {
 			return nil
 		}
 
-		return next(ctx, p)
+		return next(ctx)
 	}
 }
