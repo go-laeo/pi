@@ -4,15 +4,28 @@
 
 A `pi` is your good helper to build a clean JSON API server using Golang Generics.
 
-# Quick Start
+# Code Sample
 
 ```Go
-var h pi.HandlerFunc[any] = func (ctx pi.Context, _ *any) error {
+type UserData struct {
+    Name string
+    Password string
+}
+
+var h pi.HandlerFunc = func (ctx pi.Context) error {
+    data := &UserData{}
+    err := pi.Format(ctx, data)
+    if err != nil {
+        return pi.NewError(400, err.Error())
+    }
+
+    // do sth. actions...
+
     return ctx.Text("hello, world!")
 }
 
 sm := pi.NewServerMux(context.Background())
-sm.Get("/api/v1/users", h)
+sm.Post("/api/v1/users", h)
 
 http.ListenAndServe("localhost:8080", sm)
 ```
@@ -26,9 +39,10 @@ go get -u github.com/go-laeo/pi
 # Features
 
 - [x] Fast routing, routes group, route params and wildcard route
-- [x] `net/http` compatible
-- [x] Auto decode HTTP body using Generics
-- [x] Middleware supports
+- [x] `net/http` compatible (`pi.HandlerFunc` is a `http.Handler`)
+- [x] ~~Auto~~ Manually decode HTTP body using function `pi.Format[T any]`
+- [x] Middleware supports by `pi.Connector`
+- [x] Built-in `pi.FileServer` for SPA
 - [x] No third-party depdencies
 - [x] Unit tests and benchmarks
 
