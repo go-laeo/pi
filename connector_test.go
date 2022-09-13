@@ -8,14 +8,14 @@ import (
 
 func TestConnect(t *testing.T) {
 	t.Run("Connect_connectors_should_run_as_middleware", func(t *testing.T) {
-		var c Connector[Void] = func(next HandlerFunc[Void]) HandlerFunc[Void] {
-			return func(ctx Context, p *Void) error {
+		var c Connector = func(next HandlerFunc) HandlerFunc {
+			return func(ctx Context) error {
 				ctx.Header().Set("X-HTTP-SERVER", "net/http")
-				return next(ctx, p)
+				return next(ctx)
 			}
 		}
 
-		var h HandlerFunc[Void] = func(ctx Context, _ *Void) error {
+		var h HandlerFunc = func(ctx Context) error {
 			return ctx.Text("OK")
 		}
 
@@ -34,17 +34,18 @@ func TestConnect(t *testing.T) {
 }
 
 func BenchmarkConnect(b *testing.B) {
-	var c Connector[Void] = func(next HandlerFunc[Void]) HandlerFunc[Void] {
-		return func(ctx Context, p *Void) error {
+	var c Connector = func(next HandlerFunc) HandlerFunc {
+		return func(ctx Context) error {
 			ctx.Header().Set("X-HTTP-SERVER", "net/http")
-			return next(ctx, p)
+			return next(ctx)
 		}
 	}
 
-	var h HandlerFunc[Void] = func(ctx Context, _ *Void) error {
+	var h HandlerFunc = func(ctx Context) error {
 		return ctx.Text("OK")
 	}
 
+	b.ReportAllocs()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		h = h.Connect(c)

@@ -1,8 +1,8 @@
 package pi
 
-type Connector[T any] func(next HandlerFunc[T]) HandlerFunc[T]
+type Connector func(next HandlerFunc) HandlerFunc
 
-func (h HandlerFunc[T]) Connect(cc ...Connector[T]) HandlerFunc[T] {
+func (h HandlerFunc) Connect(cc ...Connector) HandlerFunc {
 	for i, j := 0, len(cc); i < j; i++ {
 		h = cc[j-i-1](h)
 	}
