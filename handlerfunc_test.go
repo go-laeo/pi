@@ -7,7 +7,7 @@ import (
 )
 
 func Test_HandlerFuncT_ServeHTTP(t *testing.T) {
-	var fn HandlerFunc[Void] = func(ctx Context, p *Void) error {
+	var fn HandlerFunc = func(ctx Context) error {
 		return NewError(404, "not found")
 	}
 
@@ -22,13 +22,15 @@ func Test_HandlerFuncT_ServeHTTP(t *testing.T) {
 }
 
 func Benchmark_HandlerFuncT_ServeHTTP(b *testing.B) {
-	var fn HandlerFunc[Void] = func(ctx Context, p *Void) error {
+	var fn HandlerFunc = func(ctx Context) error {
 		return NewError(200, "not found")
 	}
 
 	w := httptest.NewRecorder()
 	r := httptest.NewRequest(http.MethodGet, "/", nil)
 
+	b.ReportAllocs()
+	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		fn.ServeHTTP(w, r)
 	}
