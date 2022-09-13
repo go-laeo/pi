@@ -13,7 +13,7 @@ func TestRouteInsert(t *testing.T) {
 		pattern string
 	}
 	type args struct {
-		h      HandlerFunc[any]
+		h      HandlerFunc
 		route  string
 		method string
 	}
@@ -31,7 +31,7 @@ func TestRouteInsert(t *testing.T) {
 			args: args{
 				route:  "/api/v1/users",
 				method: "GET",
-				h: func(ctx Context, p *any) error {
+				h: func(ctx Context) error {
 					return nil
 				},
 			},
@@ -48,7 +48,7 @@ func TestRouteInsert(t *testing.T) {
 			args: args{
 				route:  "/api/v1/users",
 				method: "GET",
-				h: func(ctx Context, p *any) error {
+				h: func(ctx Context) error {
 					return nil
 				},
 			},
@@ -65,7 +65,7 @@ func TestRouteInsert(t *testing.T) {
 			args: args{
 				route:  "/api",
 				method: "GET",
-				h: func(ctx Context, p *any) error {
+				h: func(ctx Context) error {
 					return nil
 				},
 			},

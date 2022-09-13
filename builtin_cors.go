@@ -2,8 +2,8 @@ package pi
 
 import "net/http"
 
-func Cors[T any](next HandlerFunc[T]) HandlerFunc[T] {
-	return func(ctx Context, p *T) error {
+func Cors(next HandlerFunc) HandlerFunc {
+	return func(ctx Context) error {
 		ctx.Header().Set("Access-Control-Allow-Origin", "*")
 		ctx.Header().Set("Access-Control-Allow-Credentials", "true")
 
@@ -15,6 +15,6 @@ func Cors[T any](next HandlerFunc[T]) HandlerFunc[T] {
 			return nil
 		}
 
-		return next(ctx, p)
+		return next(ctx)
 	}
 }
