@@ -35,6 +35,8 @@ type ServerMux interface {
 
 	// OnNotFound sets a handler for undefined routes.
 	OnNotFound(h http.Handler)
+
+	Use(c Connector)
 }
 
 type servermux struct {
@@ -42,6 +44,7 @@ type servermux struct {
 	onnotfound http.Handler
 	root       *Route
 	prefix     string
+	cc         []Connector
 }
 
 func NewServerMux(ctx context.Context) ServerMux {
@@ -109,11 +112,17 @@ func (sm *servermux) Any(path string, h http.Handler) {
 
 func (sm *servermux) Group(prefix string, fn func(sm ServerMux)) {
 	prev := sm.prefix
+	prevCC := sm.cc
 	sm.prefix = sm.prefix + prefix
 	fn(sm)
 	sm.prefix = prev
+	sm.cc = prevCC
 }
 
 func (sm *servermux) OnNotFound(h http.Handler) {
 	sm.onnotfound = h
+}
+
+func (sm *servermux) Use(c Connector) {
+	sm.cc = append(sm.cc, c)
 }

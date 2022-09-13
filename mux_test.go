@@ -98,8 +98,8 @@ func TestServerMux_Group(t *testing.T) {
 }
 
 func TestServerMux_PathParamCapture(t *testing.T) {
-	gen := func(b string) HandlerFunc[Void] {
-		return func(ctx Context, p *Void) error {
+	gen := func(b string) HandlerFunc {
+		return func(ctx Context) error {
 			return ctx.Text(ctx.Param(b))
 		}
 	}
@@ -150,8 +150,8 @@ func TestServerMux_PathParamCapture(t *testing.T) {
 }
 
 func BenchmarkServerMux_ServeHTTP(b *testing.B) {
-	gen := func(b string) HandlerFunc[Void] {
-		return func(ctx Context, p *Void) error {
+	gen := func(b string) HandlerFunc {
+		return func(ctx Context) error {
 			return ctx.Text(ctx.Param(b))
 		}
 	}
