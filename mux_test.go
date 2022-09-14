@@ -9,9 +9,9 @@ import (
 )
 
 func TestServerMux_ServeHTTP(t *testing.T) {
-	gen := func(b string) http.HandlerFunc {
-		return func(w http.ResponseWriter, _ *http.Request) {
-			w.Write([]byte(b))
+	gen := func(b string) HandlerFunc {
+		return func(ctx Context) error {
+			return ctx.Text(b)
 		}
 	}
 
@@ -71,12 +71,12 @@ func TestServerMux_ServeHTTP(t *testing.T) {
 func TestServerMux_Group(t *testing.T) {
 	sm := NewServerMux(context.Background())
 	sm.Group("/api/v1", func(sm ServerMux) {
-		sm.Get("/users", http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-			w.Write([]byte("API"))
+		sm.Get("/users", HandlerFunc(func(ctx Context) error {
+			return ctx.Text("API")
 		}))
 	})
-	sm.Get("/users", http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.Write([]byte("OK"))
+	sm.Get("/users", HandlerFunc(func(ctx Context) error {
+		return ctx.Text("OK")
 	}))
 
 	t.Run("request sub-route should succeed", func(t *testing.T) {
@@ -145,6 +145,51 @@ func TestServerMux_PathParamCapture(t *testing.T) {
 		sm.ServeHTTP(w, r)
 		if w.Body.String() != "users/1.avatar.png" {
 			t.Fatalf("path param want = users/1.avatar.png, got = %s", w.Body.String())
+		}
+	})
+}
+
+func TestServerMux_Use(t *testing.T) {
+	sm := NewServerMux(context.Background())
+	sm.Use(func(next HandlerFunc) HandlerFunc {
+		return func(ctx Context) error {
+			ctx.Header().Set("X-TEST-HEADER", "TEST")
+			return next(ctx)
+		}
+	})
+	sm.Group("/api/v1", func(sm ServerMux) {
+		sm.Get("/users", HandlerFunc(func(ctx Context) error {
+			return ctx.Text("API")
+		}))
+	})
+	sm.Get("/users", HandlerFunc(func(ctx Context) error {
+		return ctx.Text("OK")
+	}))
+
+	t.Run("request /users should got right header value", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(http.MethodGet, "/users", nil)
+		sm.ServeHTTP(w, r)
+		if v := w.Header().Get("X-TEST-HEADER"); v != "TEST" {
+			t.Fatalf("response from /users should contains X-TEST-HEADER = TEST, got = %s", v)
+		}
+	})
+
+	t.Run("request /api/v1/users should got right header value", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(http.MethodGet, "/api/v1/users", nil)
+		sm.ServeHTTP(w, r)
+		if v := w.Header().Get("X-TEST-HEADER"); v != "TEST" {
+			t.Fatalf("response from /api/v1/users should contains X-TEST-HEADER = TEST, got = %s", v)
+		}
+	})
+
+	t.Run("request /notfound should not contains header value", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(http.MethodGet, "/notfound", nil)
+		sm.ServeHTTP(w, r)
+		if v := w.Header().Get("X-TEST-HEADER"); v != "" {
+			t.Fatalf("response from /notfound should not contains X-TEST-HEADER, got = %s", v)
 		}
 	})
 }
