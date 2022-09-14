@@ -27,6 +27,7 @@ func (p *Route) Search(route string, captured url.Values) *Route {
 	chunks := strings.Split(route, "/")
 
 	current := p
+SEARCH:
 	for i := 0; i < len(chunks); i++ {
 		seg := chunks[i]
 
@@ -52,6 +53,31 @@ func (p *Route) Search(route string, captured url.Values) *Route {
 				// wildcard route should returns immediately.
 				return next
 			}
+		}
+
+		for current.parent != nil {
+			if current.parent.hasDynamicChild {
+				k := string(dynamic)
+				next = current.parent.sub[k]
+				if next != current {
+					i--
+					captured.Set(next.placeholder, chunks[i])
+					current = next
+					continue SEARCH
+				}
+			}
+			if current.parent.hasWildcardChild {
+				k := string(wildcard)
+				next = current.parent.sub[k]
+				if next != current {
+					i--
+					captured.Set(next.placeholder, strings.Join(chunks[i:], "/"))
+					return next
+				}
+			}
+
+			i--
+			current = current.parent
 		}
 
 		return nil

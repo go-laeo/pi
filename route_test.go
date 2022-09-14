@@ -179,6 +179,7 @@ func TestRouteSearch(t *testing.T) {
 	root.Insert("/api", "GET", gen("/api"))
 	root.Insert("/api/", "GET", gen("/api/"))
 	root.Insert("/api/v1/users", "GET", gen("/api/v1/users"))
+	root.Insert("/api/v1/users/admin/share", "GET", gen("/api/v1/users/admin/share"))
 	root.Insert("/api/v1/users/:id", "GET", gen("/api/v1/users/:id"))
 	root.Insert("/api/v1/users/:id/posts", "GET", gen("/api/v1/users/:id/posts"))
 	root.Insert("/api/v1/users/:id/posts/:po", "GET", gen("/api/v1/users/:id/posts/:po"))
@@ -229,6 +230,17 @@ func TestRouteSearch(t *testing.T) {
 			args:     args{route: "/uploads/users/1.avatar.png"},
 			want:     "/uploads/*path",
 			captured: map[string]string{"path": "users/1.avatar.png"},
+		},
+		{
+			name: "search static first",
+			args: args{route: "/api/v1/users/admin/share"},
+			want: "/api/v1/users/admin/share",
+		},
+		{
+			name:     "search static then dynamic",
+			args:     args{route: "/api/v1/users/admin/posts"},
+			want:     "/api/v1/users/:id/posts",
+			captured: map[string]string{"id": "admin"},
 		},
 	}
 	for _, tt := range tests {
