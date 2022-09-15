@@ -12,6 +12,8 @@ const (
 
 type routePathParam struct{}
 
+var _routePathParam *routePathParam
+
 var defaultOnNotFound http.Handler = http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 	w.WriteHeader(404)
 })
@@ -59,7 +61,7 @@ var _ ServerMux = (*servermux)(nil)
 
 func (sm *servermux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	cap := make(url.Values)
-	r = r.WithContext(context.WithValue(sm.ctx, &routePathParam{}, cap))
+	r = r.WithContext(context.WithValue(sm.ctx, _routePathParam, cap))
 	n := sm.root.Search(r.URL.Path, cap)
 	if n != nil {
 		fn, ok := n.hmap[r.Method]
