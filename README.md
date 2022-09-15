@@ -40,8 +40,8 @@ go get -u github.com/go-laeo/pi
 
 - [x] Fast routing, routes group, route params and wildcard route
 - [x] `net/http` compatible (`pi.HandlerFunc` is a `http.Handler`)
-- [x] ~~Auto~~ Manually decode HTTP body using function `pi.Format[T any]`
-- [x] Middleware supports by `pi.Connector`
+- [x] ~~Auto~~ Manually decode HTTP body by using `pi.Format[T any]()`
+- [x] Middleware supports by using `pi.(ServerMux).Use()` or `pi.(HandlerFunc).Connect()`
 - [x] Built-in `pi.FileServer` for SPA
 - [x] No third-party depdencies
 - [x] Unit tests and benchmarks
@@ -49,6 +49,10 @@ go get -u github.com/go-laeo/pi
 # Examples
 
 See `_examples` folder.
+
+# Related Projects
+
+- [Wetalk](https://github.com/go-laeo/wetalk)
 
 # License
 
