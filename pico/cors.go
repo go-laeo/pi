@@ -1,9 +1,13 @@
-package pi
+package pico
 
-import "net/http"
+import (
+	"net/http"
 
-func Cors(next HandlerFunc) HandlerFunc {
-	return func(ctx Context) error {
+	"github.com/go-laeo/pi"
+)
+
+func Cors(next pi.HandlerFunc) pi.HandlerFunc {
+	return func(ctx pi.Context) error {
 		ctx.Header().Set("Access-Control-Allow-Origin", "*")
 		ctx.Header().Set("Access-Control-Allow-Credentials", "true")
 
