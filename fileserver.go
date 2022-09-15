@@ -42,17 +42,17 @@ func FileServer(root http.FileSystem, defaultsFile string) HandlerFunc {
 		if err != nil {
 			if errors.Is(err, fs.ErrPermission) {
 				w.WriteHeader(http.StatusForbidden)
-				w.Write([]byte("403 Forbidden"))
+				w.Write([]byte(http.StatusText(http.StatusForbidden)))
 				return nil
 			}
 			if errors.Is(err, fs.ErrNotExist) {
 				w.WriteHeader(http.StatusNotFound)
-				w.Write([]byte("404 page not found"))
+				w.Write([]byte(http.StatusText(http.StatusNotFound)))
 				return nil
 			}
 
 			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte("500 Internal Server Error"))
+			w.Write([]byte(http.StatusText(http.StatusInternalServerError)))
 			return nil
 		}
 
