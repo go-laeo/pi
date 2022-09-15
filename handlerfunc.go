@@ -12,7 +12,7 @@ type HandlerFunc func(ctx Context) error
 
 func (h HandlerFunc) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var p url.Values
-	if v := r.Context().Value(&routePathParam{}); v != nil {
+	if v := r.Context().Value(_routePathParam); v != nil {
 		p = v.(url.Values)
 	}
 
