@@ -59,7 +59,7 @@ func TestFileServer(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			w := httptest.NewRecorder()
 			r := httptest.NewRequest(http.MethodGet, tt.target, nil)
-			h.ServeHTTP(w, r)
+			h(createContext(w, r, nil))
 			if w.Code != tt.wantCode {
 				t.Fatalf("%s want code = %d, got %d", tt.name, tt.wantCode, w.Code)
 			}
@@ -83,6 +83,7 @@ func BenchmarkFileServer_ServeHTTP(b *testing.B) {
 	b.ReportAllocs()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		h.ServeHTTP(w, r)
+		ctx := createContext(w, r, nil)
+		h(ctx)
 	}
 }

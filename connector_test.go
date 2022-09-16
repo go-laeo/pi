@@ -22,7 +22,7 @@ func TestConnect(t *testing.T) {
 		w := httptest.NewRecorder()
 		r := httptest.NewRequest(http.MethodGet, "/", nil)
 
-		h.Connect(c).ServeHTTP(w, r)
+		h.Connect(c)(createContext(w, r, nil))
 
 		if w.Body.String() != "OK" {
 			t.Fatalf("test want = OK, got = %s", w.Body.String())

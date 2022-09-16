@@ -9,16 +9,15 @@ import (
 
 func TestRouteInsert(t *testing.T) {
 	type fields struct {
-		sub     map[string]*Route
+		sub     map[string]*_route
 		pattern string
 	}
 	type args struct {
-		h      HandlerFunc
-		route  string
-		method string
+		h     HandlerFunc
+		route string
 	}
 	tests := []struct {
-		want   *Route
+		want   *_route
 		args   args
 		fields fields
 		name   string
@@ -26,75 +25,71 @@ func TestRouteInsert(t *testing.T) {
 		{
 			name: "insert should succeed",
 			fields: fields{
-				sub: make(map[string]*Route),
+				sub: make(map[string]*_route),
 			},
 			args: args{
-				route:  "/api/v1/users",
-				method: "GET",
+				route: "/api/v1/users",
 				h: func(ctx Context) error {
 					return nil
 				},
 			},
-			want: &Route{
+			want: &_route{
 				pattern: "users",
-				sub:     make(map[string]*Route),
+				sub:     make(map[string]*_route),
 			},
 		},
 		{
 			name: "insert same path should succeed",
 			fields: fields{
-				sub: make(map[string]*Route),
+				sub: make(map[string]*_route),
 			},
 			args: args{
-				route:  "/api/v1/users",
-				method: "GET",
+				route: "/api/v1/users",
 				h: func(ctx Context) error {
 					return nil
 				},
 			},
-			want: &Route{
+			want: &_route{
 				pattern: "users",
-				sub:     make(map[string]*Route),
+				sub:     make(map[string]*_route),
 			},
 		},
 		{
 			name: "insert at same part should succeed",
 			fields: fields{
-				sub: make(map[string]*Route),
+				sub: make(map[string]*_route),
 			},
 			args: args{
-				route:  "/api",
-				method: "GET",
+				route: "/api",
 				h: func(ctx Context) error {
 					return nil
 				},
 			},
-			want: &Route{
+			want: &_route{
 				pattern: "api",
-				sub:     make(map[string]*Route),
+				sub:     make(map[string]*_route),
 			},
 		},
 		{
 			name: "empty string should not panic",
 			fields: fields{
-				sub: make(map[string]*Route),
+				sub: make(map[string]*_route),
 			},
 			args: args{
-				route:  "/",
-				method: "GET",
+				route: "/",
 			},
-			want: &Route{
+			want: &_route{
 				pattern: "",
 			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := &Route{
+			p := &_route{
 				pattern: tt.fields.pattern,
 				sub:     tt.fields.sub,
 			}
-			if got := p.Insert(tt.args.route, tt.args.method, tt.args.h); got.pattern != tt.want.pattern || len(got.sub) > 0 {
+			if got := p.Insert(tt.args.route).Get(tt.args.h).(*_route); got.pattern != tt.want.pattern || len(got.sub) > 0 {
 				t.Fatalf("node.Insert() = %v, want %v", got, tt.want)
 			}
 		})
@@ -103,8 +98,8 @@ func TestRouteInsert(t *testing.T) {
 
 func TestRouteSpecialInsert(t *testing.T) {
 	t.Run("insert dynamic route should succeed", func(t *testing.T) {
-		ro := &Route{}
-		node := ro.Insert("/api/v1/users/:id", "GET", nil)
+		ro := &_route{}
+		node := ro.Insert("/api/v1/users/:id").Get(nil).(*_route)
 		if node.pattern != ":id" {
 			t.Fatalf("dynamic route pattern want = :id, got = %s", node.pattern)
 		}
@@ -117,8 +112,8 @@ func TestRouteSpecialInsert(t *testing.T) {
 	})
 
 	t.Run("insert nested dynamic route should succeed", func(t *testing.T) {
-		ro := &Route{}
-		node := ro.Insert("/api/v1/users/:id/posts/:po", "GET", nil)
+		ro := &_route{}
+		node := ro.Insert("/api/v1/users/:id/posts/:po").Get(nil).(*_route)
 		if node.pattern != ":po" {
 			t.Fatalf("dynamic route pattern want = :po, got = %s", node.pattern)
 		}
@@ -131,8 +126,8 @@ func TestRouteSpecialInsert(t *testing.T) {
 	})
 
 	t.Run("insert dynamic route next to dynamic one should succeed", func(t *testing.T) {
-		ro := &Route{}
-		node := ro.Insert("/api/v1/users/:id/:po", "GET", nil)
+		ro := &_route{}
+		node := ro.Insert("/api/v1/users/:id/:po").Get(nil).(*_route)
 		if node.pattern != ":po" {
 			t.Fatalf("dynamic route pattern want = :po, got = %s", node.pattern)
 		}
@@ -145,8 +140,8 @@ func TestRouteSpecialInsert(t *testing.T) {
 	})
 
 	t.Run("insert wildcard route should succeed", func(t *testing.T) {
-		ro := &Route{}
-		node := ro.Insert("/api/v1/users/*id", "GET", nil)
+		ro := &_route{}
+		node := ro.Insert("/api/v1/users/*id").Get(nil).(*_route)
 		if node.pattern != "*id" {
 			t.Fatalf("wildcard route pattern want = :id, got = %s", node.pattern)
 		}
@@ -160,32 +155,32 @@ func TestRouteSpecialInsert(t *testing.T) {
 }
 
 func BenchmarkNodeInsert(b *testing.B) {
-	root := &Route{
-		sub: make(map[string]*Route),
+	root := &_route{
+		sub: make(map[string]*_route),
 	}
 	for i := 0; i < b.N; i++ {
-		root.Insert("/api/v1/users", "GET", nil)
+		root.Insert("/api/v1/users").Get(nil).Post(nil)
 	}
 }
 
 func TestRouteSearch(t *testing.T) {
-	gen := func(b string) http.HandlerFunc {
-		return func(w http.ResponseWriter, _ *http.Request) {
-			w.Write([]byte(b))
+	gen := func(b string) HandlerFunc {
+		return func(ctx Context) error {
+			return ctx.Text(b)
 		}
 	}
 
-	root := &Route{}
-	root.Insert("/api", "GET", gen("/api"))
-	root.Insert("/api/", "GET", gen("/api/"))
-	root.Insert("/api/v1/users", "GET", gen("/api/v1/users"))
-	root.Insert("/api/v1/users/admin/share", "GET", gen("/api/v1/users/admin/share"))
-	root.Insert("/api/v1/users/:id", "GET", gen("/api/v1/users/:id"))
-	root.Insert("/api/v1/users/:id/posts", "GET", gen("/api/v1/users/:id/posts"))
-	root.Insert("/api/v1/users/:id/posts/:po", "GET", gen("/api/v1/users/:id/posts/:po"))
-	root.Insert("/*path", "GET", gen("/*path"))
-	root.Insert("*path", "GET", gen("*path"))
-	root.Insert("/uploads/*path", "GET", gen("/uploads/*path"))
+	root := &_route{}
+	root.Insert("/api").Get(gen("/api"))
+	root.Insert("/api/").Get(gen("/api/"))
+	root.Insert("/api/v1/users").Get(gen("/api/v1/users"))
+	root.Insert("/api/v1/users/admin/share").Get(gen("/api/v1/users/admin/share"))
+	root.Insert("/api/v1/users/:id").Get(gen("/api/v1/users/:id"))
+	root.Insert("/api/v1/users/:id/posts").Get(gen("/api/v1/users/:id/posts"))
+	root.Insert("/api/v1/users/:id/posts/:po").Get(gen("/api/v1/users/:id/posts/:po"))
+	root.Insert("/*path").Get(gen("/*path"))
+	root.Insert("*path").Get(gen("*path"))
+	root.Insert("/uploads/*path").Get(gen("/uploads/*path"))
 
 	type args struct {
 		route string
@@ -252,12 +247,11 @@ func TestRouteSearch(t *testing.T) {
 			}
 			w := httptest.NewRecorder()
 			r := httptest.NewRequest(http.MethodGet, tt.args.route, nil)
-			h, ok := got.hmap[http.MethodGet]
+			ok := got.Invoke(createContext(w, r, captured))
 			if !ok {
 				t.Fatalf("[%s] does not define http.Handler", tt.name)
 			}
 
-			h.ServeHTTP(w, r)
 			if tt.want != w.Body.String() {
 				t.Fatalf("[%s] want = %s, got = %s", tt.name, tt.want, w.Body.String())
 			}
@@ -273,26 +267,29 @@ func TestRouteSearch(t *testing.T) {
 }
 
 func BenchmarkRouteSearch(b *testing.B) {
-	gen := func(b string) http.HandlerFunc {
-		return func(w http.ResponseWriter, _ *http.Request) {
-			w.Write([]byte(b))
+	gen := func(b string) HandlerFunc {
+		return func(ctx Context) error {
+			return ctx.Text(b)
 		}
 	}
 
-	root := &Route{}
-	root.Insert("/api", "GET", gen("/api"))
-	root.Insert("/api/", "GET", gen("/api/"))
-	root.Insert("/api/v1/users", "GET", gen("/api/v1/users"))
-	root.Insert("/api/v1/users/:id", "GET", gen("/api/v1/users/:id"))
-	root.Insert("/api/v1/users/:id/posts", "GET", gen("/api/v1/users/:id/posts"))
-	root.Insert("/api/v1/users/:id/posts/:po", "GET", gen("/api/v1/users/:id/posts/:po"))
-	root.Insert("/*path", "GET", gen("/*path"))
-	root.Insert("*path", "GET", gen("*path"))
-	root.Insert("/uploads/*path", "GET", gen("/uploads/*path"))
+	root := &_route{}
+	root.Insert("/api").Get(gen("/api"))
+	root.Insert("/api/").Get(gen("/api/"))
+	root.Insert("/api/v1/users").Get(gen("/api/v1/users"))
+	root.Insert("/api/v1/users/:id").Get(gen("/api/v1/users/:id"))
+	root.Insert("/api/v1/users/:id/posts").Get(gen("/api/v1/users/:id/posts"))
+	root.Insert("/api/v1/users/:id/posts/:po").Get(gen("/api/v1/users/:id/posts/:po"))
+	root.Insert("/*path").Get(gen("/*path"))
+	root.Insert("*path").Get(gen("*path"))
+	root.Insert("/uploads/*path").Get(gen("/uploads/*path"))
 
+	cap := make(url.Values)
+
+	b.ReportAllocs()
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		root.Search("/api/v1/users/:id/posts/:po", make(url.Values))
+		root.Search("/api/v1/users/100/posts/101", cap)
 	}
 }

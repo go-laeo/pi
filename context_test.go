@@ -1,7 +1,6 @@
 package pi
 
 import (
-	"bytes"
 	"context"
 	"net/http"
 	"net/http/httptest"
@@ -15,12 +14,9 @@ func Test_ctx_WithContext(t *testing.T) {
 		type b struct{}
 		var _b *b
 
-		var c Context = &_ctx{
-			w: httptest.NewRecorder(),
-			r: httptest.NewRequest(http.MethodGet, "/", nil),
-			b: bytes.NewBuffer(nil),
-			c: 200,
-		}
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(http.MethodGet, "/", nil)
+		c := createContext(w, r, nil)
 		c.SetContext(context.WithValue(c.Context(), _a, "a"))
 		c.SetContext(context.WithValue(c.Context(), _b, "b"))
 		c.Context().Value(_a)

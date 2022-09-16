@@ -16,9 +16,9 @@ func TestServerMux_ServeHTTP(t *testing.T) {
 	}
 
 	sm := NewServerMux(context.Background())
-	sm.Get("/api/v1/users", gen("OK"))
-	sm.Any("/api/v1/system/status", gen("OK"))
-	sm.Options("/preflight", gen("OK"))
+	sm.Route("/api/v1/users").Get(gen("OK"))
+	sm.Route("/api/v1/system/status").Any(gen("OK"))
+	sm.Route("/preflight").Options(gen("OK"))
 
 	type args struct {
 		w *httptest.ResponseRecorder
@@ -71,11 +71,11 @@ func TestServerMux_ServeHTTP(t *testing.T) {
 func TestServerMux_Group(t *testing.T) {
 	sm := NewServerMux(context.Background())
 	sm.Group("/api/v1", func(sm ServerMux) {
-		sm.Get("/users", HandlerFunc(func(ctx Context) error {
+		sm.Route("/users").Get(HandlerFunc(func(ctx Context) error {
 			return ctx.Text("API")
 		}))
 	})
-	sm.Get("/users", HandlerFunc(func(ctx Context) error {
+	sm.Route("/users").Get(HandlerFunc(func(ctx Context) error {
 		return ctx.Text("OK")
 	}))
 
@@ -105,12 +105,12 @@ func TestServerMux_PathParamCapture(t *testing.T) {
 	}
 
 	sm := NewServerMux(context.Background())
-	sm.Get("/api/v1/users/:id", gen("id"))
-	sm.Get("/api/v1/users/:id/posts", gen("id"))
-	sm.Get("/api/v1/users/:id/posts/:po", gen("po"))
-	sm.Get("/*path", gen("path"))
-	sm.Get("*path", gen("path"))
-	sm.Get("/uploads/*path", gen("path"))
+	sm.Route("/api/v1/users/:id").Get(gen("id"))
+	sm.Route("/api/v1/users/:id/posts").Get(gen("id"))
+	sm.Route("/api/v1/users/:id/posts/:po").Get(gen("po"))
+	sm.Route("/*path").Get(gen("path"))
+	sm.Route("*path").Get(gen("path"))
+	sm.Route("/uploads/*path").Get(gen("path"))
 
 	t.Run("capture path param should succeed", func(t *testing.T) {
 		w := httptest.NewRecorder()
@@ -158,11 +158,11 @@ func TestServerMux_Use(t *testing.T) {
 		}
 	})
 	sm.Group("/api/v1", func(sm ServerMux) {
-		sm.Get("/users", HandlerFunc(func(ctx Context) error {
+		sm.Route("/users").Get(HandlerFunc(func(ctx Context) error {
 			return ctx.Text("API")
 		}))
 	})
-	sm.Get("/users", HandlerFunc(func(ctx Context) error {
+	sm.Route("/users").Get(HandlerFunc(func(ctx Context) error {
 		return ctx.Text("OK")
 	}))
 
@@ -201,7 +201,7 @@ func BenchmarkServerMux_ServeHTTP(b *testing.B) {
 		}
 	}
 	sm := NewServerMux(context.Background())
-	sm.Get("/api/v1/users/:id/posts/:po", gen("po"))
+	sm.Route("/api/v1/users/:id/posts/:po").Get(gen("po"))
 	w := httptest.NewRecorder()
 	r := httptest.NewRequest(http.MethodGet, "/api/v1/users/100/posts/101", nil)
 

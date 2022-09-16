@@ -1,10 +1,12 @@
-# pi
+# Pi
 
 ![build.yaml](https://github.com/go-laeo/pi/actions/workflows/build.yaml/badge.svg) [![Go Reference](https://pkg.go.dev/badge/github.com/go-laeo/pi.svg)](https://pkg.go.dev/github.com/go-laeo/pi)
 
-A `pi` is your good helper to build a clean JSON API server using Golang Generics.
+[English](https://github.com/go-laeo/pi/blob/main/README_EN.md)
 
-# Code Sample
+“派”是一个简洁轻量高性能的路由组件，通过使用泛型来减少后端接口开发中的模版代码。
+
+# 代码示例
 
 ```Go
 type UserData struct {
@@ -12,7 +14,7 @@ type UserData struct {
     Password string
 }
 
-var h pi.HandlerFunc = func (ctx pi.Context) error {
+func h(ctx pi.Context) error {
     data := &UserData{}
     err := pi.Format(ctx, data)
     if err != nil {
@@ -25,35 +27,35 @@ var h pi.HandlerFunc = func (ctx pi.Context) error {
 }
 
 sm := pi.NewServerMux(context.Background())
-sm.Post("/api/v1/users", h)
+sm.Route("/api/v1/users").Post(h)
 
 http.ListenAndServe("localhost:8080", sm)
 ```
 
-# Install
+# 安装
 
 ```shell
 go get -u github.com/go-laeo/pi
 ```
 
-# Features
+# 特点
 
-- [x] Fast routing, routes group, route params and wildcard route
-- [x] `net/http` compatible (`pi.HandlerFunc` is a `http.Handler`)
-- [x] ~~Auto~~ Manually decode HTTP body by using `pi.Format[T any]()`
-- [x] Middleware supports by using `pi.(ServerMux).Use()` or `pi.(HandlerFunc).Connect()`
-- [x] Built-in `pi.FileServer` for SPA
-- [x] No third-party depdencies
-- [x] Unit tests and benchmarks
+- [x] 基于前缀树的高性能路由功能，支持路由参数提取、通配路由等功能
+- [x] ~~兼容 `net/http` (`pi.HandlerFunc` 实现了 `http.Handler`)~~
+- [x] ~~Auto~~使用泛型函数 `pi.Format[T any]()` 来主动解析请求体
+- [x] 路由中间件由 `pi.(ServerMux).Use()` 或 `pi.(HandlerFunc).Connect()` 进行注入
+- [x] 内置针对 SPA 应用优化的 `pi.FileServer`
+- [x] 无外部库依赖，无供应链攻击风险
+- [x] 完备的单元测试与性能测试
 
-# Examples
+# 更多示例
 
-See `_examples` folder.
+查看 `_examples` 目录。
 
 # Related Projects
 
 - [Wetalk](https://github.com/go-laeo/wetalk)
 
-# License
+# 开源协议
 
 Apache 2.0 License

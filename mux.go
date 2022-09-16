@@ -4,33 +4,17 @@ import (
 	"context"
 	"net/http"
 	"net/url"
+	"sync"
 )
 
-const (
-	customANY = "ANY"
-)
-
-type routePathParam struct{}
-
-var _routePathParam *routePathParam
-
-var defaultOnNotFound http.Handler = http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-	w.WriteHeader(404)
-})
+var defaultOnNotFound HandlerFunc = func(ctx Context) error {
+	return ctx.Code(404)
+}
 
 type ServerMux interface {
 	http.Handler
 
-	Get(path string, h HandlerFunc)
-	Post(path string, h HandlerFunc)
-	Put(path string, h HandlerFunc)
-	Delete(path string, h HandlerFunc)
-	Patch(path string, h HandlerFunc)
-	Options(path string, h HandlerFunc)
-	Head(path string, h HandlerFunc)
-
-	// Any insert a handler for path without check http method.
-	Any(path string, h HandlerFunc)
+	Route(path string) Route
 
 	// Group insert routes with same prefix.
 	Group(prefix string, fn func(sm ServerMux))
@@ -41,10 +25,13 @@ type ServerMux interface {
 	Use(c func(next HandlerFunc) HandlerFunc)
 }
 
+var _ ServerMux = (*servermux)(nil)
+
 type servermux struct {
 	ctx        context.Context
-	onnotfound http.Handler
-	root       *Route
+	onnotfound HandlerFunc
+	root       *_route
+	capcap     *sync.Pool
 	prefix     string
 	cc         []func(next HandlerFunc) HandlerFunc
 }
@@ -52,64 +39,44 @@ type servermux struct {
 func NewServerMux(ctx context.Context) ServerMux {
 	return &servermux{
 		ctx:        ctx,
-		root:       &Route{},
+		root:       createRootRoute(),
 		onnotfound: defaultOnNotFound,
+		capcap: &sync.Pool{
+			New: func() any {
+				return make(url.Values)
+			},
+		},
 	}
 }
-
-var _ ServerMux = (*servermux)(nil)
 
 func (sm *servermux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	cap := make(url.Values)
-	r = r.WithContext(context.WithValue(sm.ctx, _routePathParam, cap))
-	n := sm.root.Search(r.URL.Path, cap)
-	if n != nil {
-		fn, ok := n.hmap[r.Method]
-		if ok {
-			fn.ServeHTTP(w, r)
-			return
+	cap := sm.capcap.Get().(url.Values)
+	defer func() {
+		for k := range cap {
+			cap[k] = cap[k][:0] // reset slice to empty, but the keys in map will keep
 		}
+		sm.capcap.Put(cap)
+	}()
 
-		fn, ok = n.hmap[customANY]
-		if ok {
-			fn.ServeHTTP(w, r)
-			return
-		}
+	r = r.WithContext(sm.ctx)
+
+	ctx := createContext(w, r, cap)
+
+	n := sm.root.Search(r.URL.Path, cap)
+	if n == nil {
+		sm.onnotfound(ctx)
+		return
 	}
 
-	sm.onnotfound.ServeHTTP(w, r)
+	// 2 allocs/op
+	ok := n.Invoke(ctx)
+	if !ok {
+		sm.onnotfound(ctx)
+	}
 }
 
-func (sm *servermux) Get(path string, h HandlerFunc) {
-	sm.root.Insert(sm.prefix+path, http.MethodGet, h.Connect(sm.cc...))
-}
-
-func (sm *servermux) Post(path string, h HandlerFunc) {
-	sm.root.Insert(sm.prefix+path, http.MethodPost, h.Connect(sm.cc...))
-}
-
-func (sm *servermux) Put(path string, h HandlerFunc) {
-	sm.root.Insert(sm.prefix+path, http.MethodPut, h.Connect(sm.cc...))
-}
-
-func (sm *servermux) Delete(path string, h HandlerFunc) {
-	sm.root.Insert(sm.prefix+path, http.MethodDelete, h.Connect(sm.cc...))
-}
-
-func (sm *servermux) Patch(path string, h HandlerFunc) {
-	sm.root.Insert(sm.prefix+path, http.MethodPatch, h.Connect(sm.cc...))
-}
-
-func (sm *servermux) Options(path string, h HandlerFunc) {
-	sm.root.Insert(sm.prefix+path, http.MethodOptions, h.Connect(sm.cc...))
-}
-
-func (sm *servermux) Head(path string, h HandlerFunc) {
-	sm.root.Insert(sm.prefix+path, http.MethodHead, h.Connect(sm.cc...))
-}
-
-func (sm *servermux) Any(path string, h HandlerFunc) {
-	sm.root.Insert(sm.prefix+path, customANY, h.Connect(sm.cc...))
+func (sm *servermux) Route(path string) Route {
+	return sm.root.Insert(sm.prefix+path, sm.cc...)
 }
 
 func (sm *servermux) Group(prefix string, fn func(sm ServerMux)) {

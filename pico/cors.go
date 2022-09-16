@@ -15,7 +15,7 @@ func Cors(next pi.HandlerFunc) pi.HandlerFunc {
 			ctx.Header().Set("Access-Control-Methods", "POST, PUT, PATCH, DELETE")
 			ctx.Header().Set("Access-Control-Allow-Headers", "*")
 			ctx.Header().Set("Access-Control-Max-Age", "86400")
-			ctx.WriteHeader(http.StatusNoContent)
+			ctx.Code(http.StatusNoContent)
 			return nil
 		}
 

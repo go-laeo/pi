@@ -10,19 +10,41 @@ import (
 const (
 	dynamic  = ':'
 	wildcard = '*'
+	anyone   = "*"
 )
 
-type Route struct {
-	parent           *Route
-	sub              map[string]*Route
-	hmap             map[string]http.Handler
+type Route interface {
+	Search(route string, captured url.Values) Route
+	Invoke(ctx Context) bool
+
+	Get(h HandlerFunc) Route
+	Post(h HandlerFunc) Route
+	Put(h HandlerFunc) Route
+	Delete(h HandlerFunc) Route
+	Patch(h HandlerFunc) Route
+	Options(h HandlerFunc) Route
+	Head(h HandlerFunc) Route
+	Any(h HandlerFunc) Route
+}
+
+var _ Route = (*_route)(nil)
+
+type _route struct {
+	parent           *_route
+	sub              map[string]*_route
+	hmap             map[string]HandlerFunc
 	pattern          string
 	placeholder      string
+	cc               []func(HandlerFunc) HandlerFunc
 	hasDynamicChild  bool
 	hasWildcardChild bool
 }
 
-func (p *Route) Search(route string, captured url.Values) *Route {
+func createRootRoute() *_route {
+	return &_route{}
+}
+
+func (p *_route) Search(route string, captured url.Values) Route {
 	route = path.Clean(route)
 	chunks := strings.Split(route, "/")
 
@@ -40,7 +62,7 @@ SEARCH:
 		if current.hasDynamicChild {
 			next, ok = current.sub[string(dynamic)]
 			if ok {
-				captured.Set(next.placeholder, seg)
+				captured.Add(next.placeholder, seg)
 				current = next // continues on dynamic route.
 				continue
 			}
@@ -49,7 +71,7 @@ SEARCH:
 		if current.hasWildcardChild {
 			next, ok = current.sub[string(wildcard)]
 			if ok {
-				captured.Set(next.placeholder, strings.Join(chunks[i:], "/"))
+				captured.Add(next.placeholder, strings.Join(chunks[i:], "/"))
 				// wildcard route should returns immediately.
 				return next
 			}
@@ -61,7 +83,7 @@ SEARCH:
 				next = current.parent.sub[k]
 				if next != current {
 					i--
-					captured.Set(next.placeholder, chunks[i])
+					captured.Add(next.placeholder, chunks[i])
 					current = next
 					continue SEARCH
 				}
@@ -71,7 +93,7 @@ SEARCH:
 				next = current.parent.sub[k]
 				if next != current {
 					i--
-					captured.Set(next.placeholder, strings.Join(chunks[i:], "/"))
+					captured.Add(next.placeholder, strings.Join(chunks[i:], "/"))
 					return next
 				}
 			}
@@ -86,12 +108,12 @@ SEARCH:
 	return current
 }
 
-func (p *Route) Insert(route string, method string, h http.Handler) *Route {
+func (p *_route) Insert(route string, cc ...func(HandlerFunc) HandlerFunc) *_route {
 	route = path.Clean(route)
 	current := p
 	for _, seg := range strings.Split(route, "/") {
 		if current.sub == nil {
-			current.sub = make(map[string]*Route)
+			current.sub = make(map[string]*_route)
 		}
 
 		next, ok := current.sub[seg]
@@ -100,7 +122,7 @@ func (p *Route) Insert(route string, method string, h http.Handler) *Route {
 			continue
 		}
 
-		next = &Route{
+		next = &_route{
 			parent:      current,
 			pattern:     seg,
 			placeholder: seg,
@@ -124,10 +146,70 @@ func (p *Route) Insert(route string, method string, h http.Handler) *Route {
 	}
 
 	if current.hmap == nil {
-		current.hmap = make(map[string]http.Handler)
+		current.hmap = make(map[string]HandlerFunc)
 	}
 
-	current.hmap[strings.ToUpper(method)] = h
+	current.cc = append(current.cc, cc...)
 
 	return current
+}
+
+func (p *_route) Invoke(ctx Context) bool {
+	fn, ok := p.hmap[ctx.Method()]
+	if !ok {
+		fn, ok = p.hmap[anyone]
+	}
+	if !ok {
+		return false
+	}
+
+	if err := fn(ctx); err != nil {
+		switch v := err.(type) {
+		case *Error:
+			ctx.Code(v.Code)
+			ctx.Json(v)
+		default:
+			ctx.Code(http.StatusInternalServerError)
+			ctx.Json(NewError(http.StatusInternalServerError, err.Error()))
+		}
+	}
+
+	return true
+}
+
+func (p *_route) For(method string, h HandlerFunc) Route {
+	p.hmap[method] = h.Connect(p.cc...)
+	return p
+}
+
+func (p *_route) Get(h HandlerFunc) Route {
+	return p.For(http.MethodGet, h)
+}
+
+func (p *_route) Post(h HandlerFunc) Route {
+	return p.For(http.MethodPost, h.Connect(p.cc...))
+}
+
+func (p *_route) Put(h HandlerFunc) Route {
+	return p.For(http.MethodPut, h.Connect(p.cc...))
+}
+
+func (p *_route) Delete(h HandlerFunc) Route {
+	return p.For(http.MethodDelete, h.Connect(p.cc...))
+}
+
+func (p *_route) Patch(h HandlerFunc) Route {
+	return p.For(http.MethodPatch, h.Connect(p.cc...))
+}
+
+func (p *_route) Options(h HandlerFunc) Route {
+	return p.For(http.MethodOptions, h.Connect(p.cc...))
+}
+
+func (p *_route) Head(h HandlerFunc) Route {
+	return p.For(http.MethodHead, h.Connect(p.cc...))
+}
+
+func (p *_route) Any(h HandlerFunc) Route {
+	return p.For(string(wildcard), h.Connect(p.cc...))
 }
