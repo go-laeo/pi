@@ -1,7 +1,6 @@
 package pi
 
 import (
-	"context"
 	"net/http"
 	"net/url"
 	"sync"
@@ -28,7 +27,6 @@ type ServerMux interface {
 var _ ServerMux = (*servermux)(nil)
 
 type servermux struct {
-	ctx        context.Context
 	onnotfound HandlerFunc
 	root       *_route
 	capcap     *sync.Pool
@@ -36,9 +34,8 @@ type servermux struct {
 	cc         []func(next HandlerFunc) HandlerFunc
 }
 
-func NewServerMux(ctx context.Context) ServerMux {
+func NewServerMux() ServerMux {
 	return &servermux{
-		ctx:        ctx,
 		root:       createRootRoute(),
 		onnotfound: defaultOnNotFound,
 		capcap: &sync.Pool{
@@ -58,11 +55,9 @@ func (sm *servermux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		sm.capcap.Put(cap)
 	}()
 
-	r = r.WithContext(sm.ctx)
-
 	ctx := createContext(w, r, cap)
 
-	n := sm.root.Search(r.URL.Path, cap)
+	n := sm.root.Search(r.URL.Path, cap) // 1 allocs/op
 	if n == nil {
 		sm.onnotfound(ctx)
 		return

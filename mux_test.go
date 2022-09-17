@@ -2,7 +2,6 @@ package pi
 
 import (
 	"bytes"
-	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -15,7 +14,7 @@ func TestServerMux_ServeHTTP(t *testing.T) {
 		}
 	}
 
-	sm := NewServerMux(context.Background())
+	sm := NewServerMux()
 	sm.Route("/api/v1/users").Get(gen("OK"))
 	sm.Route("/api/v1/system/status").Any(gen("OK"))
 	sm.Route("/preflight").Options(gen("OK"))
@@ -69,7 +68,7 @@ func TestServerMux_ServeHTTP(t *testing.T) {
 }
 
 func TestServerMux_Group(t *testing.T) {
-	sm := NewServerMux(context.Background())
+	sm := NewServerMux()
 	sm.Group("/api/v1", func(sm ServerMux) {
 		sm.Route("/users").Get(HandlerFunc(func(ctx Context) error {
 			return ctx.Text("API")
@@ -104,7 +103,7 @@ func TestServerMux_PathParamCapture(t *testing.T) {
 		}
 	}
 
-	sm := NewServerMux(context.Background())
+	sm := NewServerMux()
 	sm.Route("/api/v1/users/:id").Get(gen("id"))
 	sm.Route("/api/v1/users/:id/posts").Get(gen("id"))
 	sm.Route("/api/v1/users/:id/posts/:po").Get(gen("po"))
@@ -150,7 +149,7 @@ func TestServerMux_PathParamCapture(t *testing.T) {
 }
 
 func TestServerMux_Use(t *testing.T) {
-	sm := NewServerMux(context.Background())
+	sm := NewServerMux()
 	sm.Use(func(next HandlerFunc) HandlerFunc {
 		return func(ctx Context) error {
 			ctx.Header().Set("X-TEST-HEADER", "TEST")
@@ -200,7 +199,7 @@ func BenchmarkServerMux_ServeHTTP(b *testing.B) {
 			return ctx.Text(ctx.Param(b))
 		}
 	}
-	sm := NewServerMux(context.Background())
+	sm := NewServerMux()
 	sm.Route("/api/v1/users/:id/posts/:po").Get(gen("po"))
 	w := httptest.NewRecorder()
 	r := httptest.NewRequest(http.MethodGet, "/api/v1/users/100/posts/101", nil)
