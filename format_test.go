@@ -15,7 +15,7 @@ func TestFormat(t *testing.T) {
 	raw := `{"A":"AA","B":1}`
 	w := httptest.NewRecorder()
 	r := httptest.NewRequest(http.MethodGet, "/", bytes.NewBufferString(raw))
-	ctx := createContext(w, r, nil)
+	ctx := createContext(w, r, nil, nil)
 
 	p := &test{}
 	err := Format(ctx, p)
@@ -38,7 +38,7 @@ func BenchmarkFormat(b *testing.B) {
 	raw := `{"A":"AA","B":1}`
 	w := httptest.NewRecorder()
 	r := httptest.NewRequest(http.MethodGet, "/", bytes.NewBufferString(raw))
-	ctx := createContext(w, r, nil)
+	ctx := createContext(w, r, nil, nil)
 
 	p := &test{}
 

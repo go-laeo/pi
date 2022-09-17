@@ -16,7 +16,7 @@ func Test_ctx_WithContext(t *testing.T) {
 
 		w := httptest.NewRecorder()
 		r := httptest.NewRequest(http.MethodGet, "/", nil)
-		c := createContext(w, r, nil)
+		c := createContext(w, r, nil, nil)
 		c.SetContext(context.WithValue(c.Context(), _a, "a"))
 		c.SetContext(context.WithValue(c.Context(), _b, "b"))
 		c.Context().Value(_a)

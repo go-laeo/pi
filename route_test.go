@@ -1,6 +1,7 @@
 package pi
 
 import (
+	"bytes"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -247,7 +248,7 @@ func TestRouteSearch(t *testing.T) {
 			}
 			w := httptest.NewRecorder()
 			r := httptest.NewRequest(http.MethodGet, tt.args.route, nil)
-			ok := got.Invoke(createContext(w, r, captured))
+			ok := got.Invoke(createContext(w, r, captured, nil))
 			if !ok {
 				t.Fatalf("[%s] does not define http.Handler", tt.name)
 			}
@@ -291,5 +292,55 @@ func BenchmarkRouteSearch(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		root.Search("/api/v1/users/100/posts/101", cap)
+	}
+}
+
+func TestRouteNameAndFrom(t *testing.T) {
+	root := createRootRoute()
+	root.Insert("/api/v1/users").Get(nil).Post(nil).Name("users")
+	root.Insert("/api/v1/users/:id/posts").Get(nil).Name("user.posts")
+	root.Insert("/api/v1/users/:userid/posts/:id").Name("user.posts.post")
+	if len(root.named) != 3 {
+		t.Fatalf("should have 3 named routes")
+	}
+
+	b := root.From("users", nil)
+	if !bytes.Equal(b, []byte("/api/v1/users")) {
+		t.Fatalf("want = /api/v1/users, got = %s", b)
+	}
+
+	b = root.From("user.posts", nil)
+	if !bytes.Equal(b, []byte("/api/v1/users/:id/posts")) {
+		t.Fatalf("want = /api/v1/users/:id/posts, got = %s", b)
+	}
+
+	b = root.From("user.posts", url.Values{"id": []string{"1"}})
+	if !bytes.Equal(b, []byte("/api/v1/users/1/posts")) {
+		t.Fatalf("want = /api/v1/users/1/posts, got = %s", b)
+	}
+
+	b = root.From("user.posts", url.Values{"id": []string{"1"}, "pi": []string{"1"}})
+	if !bytes.Equal(b, []byte("/api/v1/users/1/posts")) {
+		t.Fatalf("want = /api/v1/users/1/posts, got = %s", b)
+	}
+
+	b = root.From("user.posts.post", url.Values{"userid": []string{"1"}, "id": []string{"1"}})
+	if !bytes.Equal(b, []byte("/api/v1/users/1/posts/1")) {
+		t.Fatalf("want = /api/v1/users/1/posts/1, got = %s", b)
+	}
+}
+
+func BenchmarkRouteNameAndFrom(b *testing.B) {
+	root := createRootRoute()
+	root.Insert("/api/v1/users").Get(nil).Post(nil).Name("users")
+	root.Insert("/api/v1/users/:id/posts").Get(nil).Name("user.posts")
+	root.Insert("/api/v1/users/:userid/posts/:id").Name("user.posts.post")
+
+	v := url.Values{"userid": []string{"1"}, "id": []string{"1"}}
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		root.From("user.posts.post", v)
 	}
 }

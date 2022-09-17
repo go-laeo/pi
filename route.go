@@ -1,6 +1,7 @@
 package pi
 
 import (
+	"bytes"
 	"net/http"
 	"net/url"
 	"path"
@@ -14,9 +15,23 @@ const (
 )
 
 type Route interface {
+	// Search try to match `route`, and stores
+	// path params to `captured`, if nothing
+	// found, it will returns nil.
 	Search(route string, captured url.Values) Route
+
+	// Invoke calls corresponding HandlerFunc which
+	// registered for ctx.Method().
 	Invoke(ctx Context) bool
 
+	Name(name string) Route
+
+	// // From generates a *url.URL for route `name`,
+	// // if nothing found, it will returns nil.
+	// From(name string, v url.Values) *url.URL
+
+	// For registers `h` for `method` on the route path.
+	For(method string, h HandlerFunc) Route
 	Get(h HandlerFunc) Route
 	Post(h HandlerFunc) Route
 	Put(h HandlerFunc) Route
@@ -33,20 +48,26 @@ type _route struct {
 	parent           *_route
 	sub              map[string]*_route
 	hmap             map[string]HandlerFunc
+	named            map[string]*_route
 	pattern          string
 	placeholder      string
+	name             string
 	cc               []func(HandlerFunc) HandlerFunc
 	hasDynamicChild  bool
 	hasWildcardChild bool
 }
 
 func createRootRoute() *_route {
-	return &_route{}
+	return &_route{
+		sub:   make(map[string]*_route),
+		hmap:  make(map[string]HandlerFunc),
+		named: make(map[string]*_route),
+	}
 }
 
 func (p *_route) Search(route string, captured url.Values) Route {
 	route = path.Clean(route)
-	chunks := strings.Split(route, "/")
+	chunks := strings.Split(route, "/") // TODO: use index to identify a chunk instead of call Split().
 
 	current := p
 SEARCH:
@@ -175,6 +196,48 @@ func (p *_route) Invoke(ctx Context) bool {
 	}
 
 	return true
+}
+
+func (p *_route) Name(name string) Route {
+	p.name = name
+	root := p
+	for root.parent != nil {
+		root = root.parent
+	}
+	root.named[name] = p
+	return p
+}
+
+func (p *_route) From(name string, v url.Values) []byte {
+	root := p
+	for root.parent != nil {
+		root = root.parent
+	}
+
+	t, ok := root.named[name]
+	if !ok {
+		return nil
+	}
+
+	seg := make([]string, 0)
+	for t != nil && t.pattern != "" {
+		if v.Has(t.placeholder) {
+			seg = append(seg, v.Get(t.placeholder))
+			v.Del(t.placeholder)
+		} else {
+			seg = append(seg, t.pattern)
+		}
+
+		t = t.parent
+	}
+
+	sb := bytes.Buffer{}
+	for i := len(seg) - 1; i >= 0; i-- {
+		sb.WriteByte('/')
+		sb.WriteString(seg[i])
+	}
+
+	return sb.Bytes()
 }
 
 func (p *_route) For(method string, h HandlerFunc) Route {

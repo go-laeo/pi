@@ -109,21 +109,27 @@ type Context interface {
 	Text(v string) error
 	Redirect(to string, code ...int) error
 	SetCookie(c *http.Cookie)
+
+	// Route generates a *url.URL for route `name`,
+	// if nothing found, it will returns nil.
+	Route(name string, v url.Values) *url.URL
 }
 
 var _ Context = (*_ctx)(nil)
 
 type _ctx struct {
-	w http.ResponseWriter
-	r *http.Request
-	p url.Values
+	w  http.ResponseWriter
+	r  *http.Request
+	p  url.Values
+	sm *servermux
 }
 
-func createContext(w http.ResponseWriter, r *http.Request, cap url.Values) Context {
+func createContext(w http.ResponseWriter, r *http.Request, cap url.Values, sm *servermux) Context {
 	return &_ctx{
-		w: w,
-		r: r,
-		p: cap,
+		w:  w,
+		r:  r,
+		p:  cap,
+		sm: sm,
 	}
 }
 
@@ -251,4 +257,19 @@ func (c *_ctx) Redirect(to string, code ...int) error {
 
 func (c *_ctx) SetCookie(co *http.Cookie) {
 	http.SetCookie(c.w, co)
+}
+
+func (c *_ctx) Route(name string, v url.Values) *url.URL {
+	b := c.sm.root.From(name, v)
+	if b == nil {
+		return nil
+	}
+
+	u := &url.URL{}
+	u.Host = c.r.Host
+	u.Scheme = c.r.URL.Scheme
+	u.Path = string(b)
+	u.RawQuery = v.Encode()
+
+	return u
 }

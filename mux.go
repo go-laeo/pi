@@ -55,7 +55,7 @@ func (sm *servermux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		sm.capcap.Put(cap)
 	}()
 
-	ctx := createContext(w, r, cap)
+	ctx := createContext(w, r, cap, sm)
 
 	n := sm.root.Search(r.URL.Path, cap) // 1 allocs/op
 	if n == nil {
