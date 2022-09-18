@@ -149,7 +149,7 @@ func (p *_route) Insert(route string, cc ...func(HandlerFunc) HandlerFunc) *_rou
 		current.hmap = make(map[string]HandlerFunc)
 	}
 
-	current.cc = append(current.cc, cc...)
+	current.cc = cc
 
 	return current
 }
@@ -187,29 +187,29 @@ func (p *_route) Get(h HandlerFunc) Route {
 }
 
 func (p *_route) Post(h HandlerFunc) Route {
-	return p.For(http.MethodPost, h.Connect(p.cc...))
+	return p.For(http.MethodPost, h)
 }
 
 func (p *_route) Put(h HandlerFunc) Route {
-	return p.For(http.MethodPut, h.Connect(p.cc...))
+	return p.For(http.MethodPut, h)
 }
 
 func (p *_route) Delete(h HandlerFunc) Route {
-	return p.For(http.MethodDelete, h.Connect(p.cc...))
+	return p.For(http.MethodDelete, h)
 }
 
 func (p *_route) Patch(h HandlerFunc) Route {
-	return p.For(http.MethodPatch, h.Connect(p.cc...))
+	return p.For(http.MethodPatch, h)
 }
 
 func (p *_route) Options(h HandlerFunc) Route {
-	return p.For(http.MethodOptions, h.Connect(p.cc...))
+	return p.For(http.MethodOptions, h)
 }
 
 func (p *_route) Head(h HandlerFunc) Route {
-	return p.For(http.MethodHead, h.Connect(p.cc...))
+	return p.For(http.MethodHead, h)
 }
 
 func (p *_route) Any(h HandlerFunc) Route {
-	return p.For(string(wildcard), h.Connect(p.cc...))
+	return p.For(string(wildcard), h)
 }

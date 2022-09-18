@@ -157,9 +157,18 @@ func TestServerMux_Use(t *testing.T) {
 		}
 	})
 	sm.Group("/api/v1", func(sm ServerMux) {
+		sm.Use(func(next HandlerFunc) HandlerFunc {
+			return func(ctx Context) error {
+				ctx.Header().Set("X-API-VERSION", "v1")
+				return next(ctx)
+			}
+		})
 		sm.Route("/users").Get(HandlerFunc(func(ctx Context) error {
 			return ctx.Text("API")
 		}))
+	})
+	sm.Route("/api/v1/users").Post(func(ctx Context) error {
+		return ctx.Text("PUBLIC")
 	})
 	sm.Route("/users").Get(HandlerFunc(func(ctx Context) error {
 		return ctx.Text("OK")
@@ -188,6 +197,15 @@ func TestServerMux_Use(t *testing.T) {
 		r := httptest.NewRequest(http.MethodGet, "/notfound", nil)
 		sm.ServeHTTP(w, r)
 		if v := w.Header().Get("X-TEST-HEADER"); v != "" {
+			t.Fatalf("response from /notfound should not contains X-TEST-HEADER, got = %s", v)
+		}
+	})
+
+	t.Run("request POST /api/v1/users should not contains header X-API-VERSION", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(http.MethodPost, "/api/v1/users", nil)
+		sm.ServeHTTP(w, r)
+		if v := w.Header().Get("X-API-VERSION"); v != "" {
 			t.Fatalf("response from /notfound should not contains X-TEST-HEADER, got = %s", v)
 		}
 	})
