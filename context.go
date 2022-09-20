@@ -45,6 +45,9 @@ type Context interface {
 	// Param gets named route param by name, returns empty string if it does not exists.
 	Param(name string) string
 
+	// ParamValues returns all path params.
+	ParamValues() url.Values
+
 	// IP gets first client IP.
 	IP() string
 
@@ -195,6 +198,10 @@ func (c *_ctx) URL() *url.URL {
 
 func (c *_ctx) Param(name string) string {
 	return c.p.Get(name)
+}
+
+func (c *_ctx) ParamValues() url.Values {
+	return c.p
 }
 
 func (c *_ctx) IP() string {
