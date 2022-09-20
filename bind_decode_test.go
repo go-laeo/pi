@@ -6,30 +6,30 @@ import (
 	"testing"
 )
 
-type embeded struct {
-	PageIndex int `query:"pi"`
-	PageSize  int `query:"ps"`
-}
-
-type usr struct {
-	Name     string `query:"name"`
-	password string
-	Date     string
-	embeded
-	Embeded embeded
-	ID      int `query:"id"`
-	Age     int `query:"-"`
-	Untyped struct {
+func Test_decode(t *testing.T) {
+	type embeded struct {
 		PageIndex int `query:"pi"`
 		PageSize  int `query:"ps"`
 	}
-	Untyped2 struct {
-		Index int `query:"pi"`
-		Size  int `query:"ps"`
-	}
-}
 
-func Test_decode(t *testing.T) {
+	type usr struct {
+		Name     string `query:"name"`
+		password string
+		Date     string
+		embeded
+		Embeded embeded
+		ID      int `query:"id"`
+		Age     int `query:"-"`
+		Untyped struct {
+			PageIndex int `query:"pi"`
+			PageSize  int `query:"ps"`
+		}
+		Untyped2 struct {
+			Index int `query:"pi"`
+			Size  int `query:"ps"`
+		}
+	}
+
 	m := url.Values{
 		"id":       []string{"1"},
 		"name":     []string{"lebai"},
@@ -87,14 +87,18 @@ func Test_decode(t *testing.T) {
 }
 
 func BenchmarkDeocde(b *testing.B) {
+	type usr struct {
+		Name string `query:"name"`
+		Date string
+		ID   int `query:"id"`
+		Age  int `query:"-"`
+	}
+
 	m := url.Values{
-		"id":       []string{"1"},
-		"name":     []string{"lebai"},
-		"password": []string{"secured"},
-		"Age":      []string{"18"},
-		"Date":     []string{"2022"},
-		"pi":       []string{"1"},
-		"ps":       []string{"20"},
+		"id":   []string{"1"},
+		"name": []string{"lebai"},
+		"Age":  []string{"18"},
+		"Date": []string{"2022"},
 	}
 	v := usr{}
 	p := reflect.ValueOf(&v)
