@@ -1,7 +1,7 @@
 package pi
 
 type Result[T any] struct {
-	Data         T      `json:"data,omitempty"`
+	Data         T      `json:"data"`
 	Error        string `json:"error,omitempty"`
 	ErrorMessage string `json:"error_message,omitempty"`
 	OK           bool   `json:"ok"`
