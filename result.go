@@ -1,14 +1,14 @@
 package pi
 
 type Result[T any] struct {
-	Data         T      `json:"data"`
+	Data         T      `json:"data,omitempty"`
 	Error        string `json:"error,omitempty"`
 	ErrorMessage string `json:"error_message,omitempty"`
 	OK           bool   `json:"ok"`
 }
 
 type LengthResult[T any] struct {
-	Data         T      `json:"data,omitempty"`
+	Data         T      `json:"data"`
 	Error        string `json:"error,omitempty"`
 	ErrorMessage string `json:"error_message,omitempty"`
 	Page         int    `json:"page,omitempty"`
