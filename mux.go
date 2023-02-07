@@ -1,49 +1,64 @@
 package pi
 
 import (
+	"errors"
+	"log"
 	"net/http"
 	"net/url"
 	"sync"
 )
 
-var defaultOnNotFound HandlerFunc = func(ctx Context) error {
+var defaultNotFoundHandler HandlerFunc = func(ctx Context) error {
 	return ctx.Code(404)
+}
+
+var defaultErrorFormatter = func(err error) ErrorResult {
+	return ErrorResult{
+		Error:        err.Error(),
+		ErrorMessage: "For customize error response, call method SetErrorFormatter().",
+	}
 }
 
 type ServerMux interface {
 	http.Handler
 
 	Route(path string) Route
-
-	// Group insert routes with same prefix.
 	Group(prefix string, fn func(sm ServerMux))
-
-	// OnNotFound sets a handler for undefined routes.
-	OnNotFound(h HandlerFunc)
-
+	SetNotFoundHandler(h HandlerFunc)
+	SetErrorFormatter(fn func(error) ErrorResult)
 	Use(c func(next HandlerFunc) HandlerFunc)
 }
 
 var _ ServerMux = (*servermux)(nil)
 
 type servermux struct {
-	onnotfound HandlerFunc
-	root       *_route
-	capcap     *sync.Pool
-	prefix     string
-	cc         []func(next HandlerFunc) HandlerFunc
+	notFoundHandler HandlerFunc
+	root            *_route
+	capcap          *sync.Pool
+	errorFormater   func(error) ErrorResult
+	prefix          string
+	cc              []func(next HandlerFunc) HandlerFunc
 }
 
 func NewServerMux() ServerMux {
 	return &servermux{
-		root:       createRootRoute(),
-		onnotfound: defaultOnNotFound,
+		root:            createRootRoute(),
+		notFoundHandler: defaultNotFoundHandler,
+		errorFormater:   defaultErrorFormatter,
 		capcap: &sync.Pool{
 			New: func() any {
 				return make(url.Values)
 			},
 		},
 	}
+}
+
+func (sm *servermux) SetErrorFormatter(fn func(error) ErrorResult) {
+	sm.errorFormater = fn
+}
+
+func (sm *servermux) SetNotFoundHandler(h HandlerFunc) {
+	sm.notFoundHandler = h
 }
 
 func (sm *servermux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -57,16 +72,23 @@ func (sm *servermux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	ctx := createContext(w, r, cap)
 
+	var err error
 	n := sm.root.Search(r.URL.Path, cap) // 1 allocs/op
 	if n == nil {
-		sm.onnotfound(ctx)
-		return
+		err = ErrHandlerNotFound
+	} else {
+		// 2 allocs/op
+		err = n.Invoke(ctx)
 	}
 
-	// 2 allocs/op
-	ok := n.Invoke(ctx)
-	if !ok {
-		sm.onnotfound(ctx)
+	if errors.Is(err, ErrHandlerNotFound) {
+		err = sm.notFoundHandler(ctx)
+	}
+
+	if err != nil {
+		if err = ctx.Json(sm.errorFormater(err)); err != nil {
+			log.Println("PI Error:", err)
+		}
 	}
 }
 
@@ -81,10 +103,6 @@ func (sm *servermux) Group(prefix string, fn func(sm ServerMux)) {
 	fn(sm)
 	sm.prefix = prev
 	sm.cc = prevCC
-}
-
-func (sm *servermux) OnNotFound(h HandlerFunc) {
-	sm.onnotfound = h
 }
 
 func (sm *servermux) Use(c func(next HandlerFunc) HandlerFunc) {

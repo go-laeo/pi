@@ -1,14 +1,7 @@
 package pi
 
-type Error struct {
-	Message string `json:"message,omitempty"`
-	Code    int    `json:"code"`
-}
+import "errors"
 
-func NewError(code int, message string) *Error {
-	return &Error{Code: code, Message: message}
-}
-
-func (e *Error) Error() string {
-	return e.Message
-}
+var (
+	ErrHandlerNotFound = errors.New("handler not found")
+)

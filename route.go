@@ -15,7 +15,7 @@ const (
 
 type Route interface {
 	Search(route string, captured url.Values) Route
-	Invoke(ctx Context) bool
+	Invoke(ctx Context) error
 
 	Get(h HandlerFunc) Route
 	Post(h HandlerFunc) Route
@@ -154,27 +154,16 @@ func (p *_route) Insert(route string, cc ...func(HandlerFunc) HandlerFunc) *_rou
 	return current
 }
 
-func (p *_route) Invoke(ctx Context) bool {
+func (p *_route) Invoke(ctx Context) error {
 	fn, ok := p.hmap[ctx.Method()]
 	if !ok {
 		fn, ok = p.hmap[anyone]
 	}
 	if !ok {
-		return false
+		return ErrHandlerNotFound
 	}
 
-	if err := fn(ctx); err != nil {
-		switch v := err.(type) {
-		case *Error:
-			ctx.Code(v.Code)
-			ctx.Json(v)
-		default:
-			ctx.Code(http.StatusInternalServerError)
-			ctx.Json(NewError(http.StatusInternalServerError, err.Error()))
-		}
-	}
-
-	return true
+	return fn(ctx)
 }
 
 func (p *_route) For(method string, h HandlerFunc) Route {

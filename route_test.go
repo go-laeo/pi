@@ -247,9 +247,9 @@ func TestRouteSearch(t *testing.T) {
 			}
 			w := httptest.NewRecorder()
 			r := httptest.NewRequest(http.MethodGet, tt.args.route, nil)
-			ok := got.Invoke(createContext(w, r, captured))
-			if !ok {
-				t.Fatalf("[%s] does not define http.Handler", tt.name)
+			err := got.Invoke(createContext(w, r, captured))
+			if err != nil {
+				t.Fatalf("[%s] does not define http.Handler: %s", tt.name, err)
 			}
 
 			if tt.want != w.Body.String() {
