@@ -2,7 +2,6 @@ package pi
 
 import (
 	"errors"
-	"log"
 	"net/http"
 	"net/url"
 	"sync"
@@ -12,11 +11,11 @@ var defaultNotFoundHandler HandlerFunc = func(ctx Context) error {
 	return ctx.Code(404)
 }
 
-var defaultErrorFormatter = func(err error) ErrorResult {
-	return ErrorResult{
-		Error:        err.Error(),
-		ErrorMessage: "For customize error response, call method SetErrorFormatter().",
-	}
+var defaultErrorFormatter = func(ctx Context, err error) {
+	ctx.Error(http.StatusInternalServerError, &ErrorResult{
+		Error:        "unknown",
+		ErrorMessage: err.Error(),
+	})
 }
 
 type ServerMux interface {
@@ -25,7 +24,7 @@ type ServerMux interface {
 	Route(path string) Route
 	Group(prefix string, fn func(sm ServerMux))
 	SetNotFoundHandler(h HandlerFunc)
-	SetErrorFormatter(fn func(error) ErrorResult)
+	SetErrorFormatter(fn func(ctx Context, err error))
 	Use(c func(next HandlerFunc) HandlerFunc)
 }
 
@@ -35,7 +34,7 @@ type servermux struct {
 	notFoundHandler HandlerFunc
 	root            *_route
 	capcap          *sync.Pool
-	errorFormater   func(error) ErrorResult
+	errorFormater   func(ctx Context, err error)
 	prefix          string
 	cc              []func(next HandlerFunc) HandlerFunc
 }
@@ -53,7 +52,7 @@ func NewServerMux() ServerMux {
 	}
 }
 
-func (sm *servermux) SetErrorFormatter(fn func(error) ErrorResult) {
+func (sm *servermux) SetErrorFormatter(fn func(ctx Context, err error)) {
 	sm.errorFormater = fn
 }
 
@@ -86,9 +85,7 @@ func (sm *servermux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err != nil {
-		if err = ctx.Json(sm.errorFormater(err)); err != nil {
-			log.Println("PI Error:", err)
-		}
+		sm.errorFormater(ctx, err)
 	}
 }
 

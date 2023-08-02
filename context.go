@@ -112,6 +112,8 @@ type Context interface {
 	Text(v string) error
 	Redirect(to string, code ...int) error
 	SetCookie(c *http.Cookie)
+
+	Error(status int, result *ErrorResult) error
 }
 
 var _ Context = (*_ctx)(nil)
@@ -258,4 +260,9 @@ func (c *_ctx) Redirect(to string, code ...int) error {
 
 func (c *_ctx) SetCookie(co *http.Cookie) {
 	http.SetCookie(c.w, co)
+}
+
+func (c *_ctx) Error(status int, result *ErrorResult) error {
+	c.w.WriteHeader(status)
+	return c.Json(result)
 }
